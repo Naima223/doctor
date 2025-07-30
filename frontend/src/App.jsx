@@ -14,7 +14,7 @@ const App = () => {
       <Navbar />
       <Routes>
         <Route path='/' element={<Home />} />
-      </Routes>
+<Route path="/doctors" element={<Doctors />} />      </Routes>
       <Footer />
     </div>
   )
