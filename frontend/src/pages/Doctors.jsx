@@ -1,75 +1,151 @@
-
 import React, { useState, useEffect } from 'react';
-import { Filter, User, Star, MapPin, Phone, Clock } from 'lucide-react';
-
 
 const Doctors = () => {
+  // Mock data with Bengali doctors and Bangladeshi details
   const mockDoctors = [
     {
       id: 1,
-      name: "Dr. Sarah Khan",
+      name: "Dr. Aminul Islam",
       speciality: "General physician",
-      image: "https://images.unsplash.com/photo-1559839734-2b71ea197ec2?w=400&h=400&fit=crop&crop=face",
+      image: "/api/placeholder/400/400",
       rating: 4.8,
       experience: "8 years",
-      location: "Ibn Sina Medical College And Hospital",
-      phone: "01552337495",
-      availableSlots: 12
+      location: "Ibn Sina Medical College Hospital",
+      phone: "+880 1711-123456",
+      availableSlots: 12,
+      degree: "MBBS, FCPS"
     },
     {
       id: 2,
-      name: "Dr. Alim",
+      name: "Dr. Fatema Khatun",
       speciality: "Dermatologist",
-      image: "https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?w=400&h=400&fit=crop&crop=face",
+      image: "/api/placeholder/400/400",
       rating: 4.9,
       experience: "12 years",
-      location: "Skin Care Clinic",
-      phone: "+1 (555) 234-5678",
-      availableSlots: 8
+      location: "Square Hospitals Ltd.",
+      phone: "+880 1712-234567",
+      availableSlots: 8,
+      degree: "MBBS, DDV"
     },
     {
       id: 3,
-      name: "Dr. Emily Rodriguez",
+      name: "Dr. Rashida Begum",
       speciality: "Gynecologist",
-      image: "https://images.unsplash.com/photo-1594824209347-fe5bb45c3bb8?w=400&h=400&fit=crop&crop=face",
+      image: "/api/placeholder/400/400",
       rating: 4.7,
       experience: "10 years",
-      location: "Women's Health Center",
-      phone: "+1 (555) 345-6789",
-      availableSlots: 6
+      location: "Labaid Specialized Hospital",
+      phone: "+880 1713-345678",
+      availableSlots: 6,
+      degree: "MBBS, FCPS (Gynae)"
     },
     {
       id: 4,
-      name: "Dr. David Park",
+      name: "Dr. Mohammad Rahman",
       speciality: "Pediatricians",
-      image: "https://images.unsplash.com/photo-1622253692010-333f2da6031d?w=400&h=400&fit=crop&crop=face",
+      image: "/api/placeholder/400/400",
       rating: 4.9,
       experience: "15 years",
-      location: "Children's Medical Group",
-      phone: "+1 (555) 456-7890",
-      availableSlots: 10
+      location: "Bangladesh Specialized Hospital",
+      phone: "+880 1714-456789",
+      availableSlots: 10,
+      degree: "MBBS, DCH, FCPS"
     },
     {
       id: 5,
-      name: "Dr. Lisa Thompson",
+      name: "Dr. Nazrul Islam",
       speciality: "Neurologist",
-      image: "https://images.unsplash.com/photo-1551601651-2a8555f1a136?w=400&h=400&fit=crop&crop=face",
+      image: "/api/placeholder/400/400",
       rating: 4.8,
       experience: "18 years",
-      location: "Neuro Specialty Center",
-      phone: "+1 (555) 567-8901",
-      availableSlots: 4
+      location: "National Institute of Neurosciences & Hospital",
+      phone: "+880 1715-567890",
+      availableSlots: 4,
+      degree: "MBBS, FCPS (Neuro)"
     },
     {
       id: 6,
-      name: "Dr. James Wilson",
+      name: "Dr. Shahida Parveen",
       speciality: "Gastroenterologist",
-      image: "https://images.unsplash.com/photo-1582750869174-bcce13186b4a?w=400&h=400&fit=crop&crop=face",
+      image: "/api/placeholder/400/400",
       rating: 4.6,
       experience: "14 years",
-      location: "Digestive Health Institute",
-      phone: "+1 (555) 678-9012",
-      availableSlots: 7
+      location: "United Hospital Limited",
+      phone: "+880 1716-678901",
+      availableSlots: 7,
+      degree: "MBBS, FCPS (Medicine)"
+    },
+    {
+      id: 7,
+      name: "Dr. Abdul Karim",
+      speciality: "General physician",
+      image: "/api/placeholder/400/400",
+      rating: 4.5,
+      experience: "6 years",
+      location: "Government Employees Hospital",
+      phone: "+880 1717-789012",
+      availableSlots: 15,
+      degree: "MBBS"
+    },
+    {
+      id: 8,
+      name: "Dr. Ruma Akter",
+      speciality: "Dermatologist",
+      image: "/api/placeholder/400/400",
+      rating: 4.7,
+      experience: "9 years",
+      location: "Apollo Hospitals Dhaka",
+      phone: "+880 1718-890123",
+      availableSlots: 11,
+      degree: "MBBS, CCD"
+    },
+    {
+      id: 9,
+      name: "Dr. Marium Begum",
+      speciality: "Gynecologist",
+      image: "/api/placeholder/400/400",
+      rating: 4.8,
+      experience: "13 years",
+      location: "Dhaka Medical College Hospital",
+      phone: "+880 1719-901234",
+      availableSlots: 5,
+      degree: "MBBS, MS (Gynae)"
+    },
+    {
+      id: 10,
+      name: "Dr. Habibur Rahman",
+      speciality: "Pediatricians",
+      image: "/api/placeholder/400/400",
+      rating: 4.6,
+      experience: "11 years",
+      location: "Evercare Hospital Dhaka",
+      phone: "+880 1720-012345",
+      availableSlots: 9,
+      degree: "MBBS, FCPS (Paediatrics)"
+    },
+    {
+      id: 11,
+      name: "Dr. Khalilur Rahman",
+      speciality: "Neurologist",
+      image: "/api/placeholder/400/400",
+      rating: 4.9,
+      experience: "20 years",
+      location: "Bangabandhu Sheikh Mujib Medical University",
+      phone: "+880 1721-123456",
+      availableSlots: 3,
+      degree: "MBBS, MD (Neurology)"
+    },
+    {
+      id: 12,
+      name: "Dr. Nasreen Sultana",
+      speciality: "Gastroenterologist",
+      image: "/api/placeholder/400/400",
+      rating: 4.7,
+      experience: "16 years",
+      location: "Popular Medical College Hospital",
+      phone: "+880 1722-234567",
+      availableSlots: 8,
+      degree: "MBBS, FCPS (Gastroenterology)"
     }
   ];
 
@@ -84,19 +160,43 @@ const Doctors = () => {
 
   const [selectedSpecialty, setSelectedSpecialty] = useState('');
   const [filteredDoctors, setFilteredDoctors] = useState(mockDoctors);
-  const [showFilter, setShowFilter] = useState(false);
+  const [sortBy, setSortBy] = useState('name');
+  const [showAvailableOnly, setShowAvailableOnly] = useState(false);
+  const [showFilter, setShowFilter] = useState(false); // Added missing state
 
   const applyFilter = () => {
+    let filtered = mockDoctors;
+    
+    // Filter by specialty
     if (selectedSpecialty) {
-      setFilteredDoctors(mockDoctors.filter(doc => doc.speciality === selectedSpecialty));
-    } else {
-      setFilteredDoctors(mockDoctors);
+      filtered = filtered.filter(doc => doc.speciality === selectedSpecialty);
     }
+    
+    // Filter by availability
+    if (showAvailableOnly) {
+      filtered = filtered.filter(doc => doc.availableSlots > 0);
+    }
+    
+    // Sort doctors
+    filtered.sort((a, b) => {
+      switch (sortBy) {
+        case 'rating':
+          return b.rating - a.rating;
+        case 'experience':
+          return parseInt(b.experience) - parseInt(a.experience);
+        case 'slots':
+          return b.availableSlots - a.availableSlots;
+        default:
+          return a.name.localeCompare(b.name);
+      }
+    });
+    
+    setFilteredDoctors(filtered);
   };
 
   useEffect(() => {
     applyFilter();
-  }, [selectedSpecialty]);
+  }, [selectedSpecialty, sortBy, showAvailableOnly]);
 
   const handleSpecialtyClick = (specialty) => {
     if (selectedSpecialty === specialty) {
@@ -115,32 +215,36 @@ const Doctors = () => {
             <img 
               src={doctor.image} 
               alt={doctor.name}
-              className="w-20 h-20 rounded-full object-cover border-4 border-blue-50"
+              className="w-20 h-20 rounded-full object-cover border-4 border-blue-50 bg-gray-200"
+              onError={(e) => {
+                e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(doctor.name)}&background=3b82f6&color=ffffff&size=400`;
+              }}
             />
             <div className="absolute -bottom-1 -right-1 bg-green-500 w-6 h-6 rounded-full border-2 border-white"></div>
           </div>
           
           <div className="flex-1">
             <h3 className="font-bold text-lg text-gray-800 mb-1">{doctor.name}</h3>
-            <p className="text-blue-600 font-medium mb-2">{doctor.speciality}</p>
+            <p className="text-blue-600 font-medium mb-1">{doctor.speciality}</p>
+            <p className="text-xs text-gray-500 mb-2">{doctor.degree}</p>
             
             <div className="flex items-center gap-1 mb-2">
-              <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
+              <span className="text-yellow-400">⭐</span>
               <span className="text-sm font-medium text-gray-700">{doctor.rating}</span>
               <span className="text-sm text-gray-500">• {doctor.experience} exp</span>
             </div>
             
             <div className="space-y-1 text-sm text-gray-600">
               <div className="flex items-center gap-2">
-                <MapPin className="w-4 h-4" />
+                <span>📍</span>
                 <span>{doctor.location}</span>
               </div>
               <div className="flex items-center gap-2">
-                <Phone className="w-4 h-4" />
+                <span>📞</span>
                 <span>{doctor.phone}</span>
               </div>
               <div className="flex items-center gap-2">
-                <Clock className="w-4 h-4" />
+                <span>🕒</span>
                 <span className="text-green-600 font-medium">{doctor.availableSlots} slots available</span>
               </div>
             </div>
@@ -157,90 +261,120 @@ const Doctors = () => {
   );
 
   return (
-    <div className="bg-gradient-to-br from-blue-50 via-white to-indigo-50 p-4">
+    <div className="bg-gradient-to-br from-blue-50 via-white to-indigo-50 p-4 min-h-screen">
       <div className="max-w-7xl mx-auto">
-        <p className='text-gray-600 mb-5'>Browse through the doctors specialist.</p>
+        <div className="mb-6">
+          <h1 className="text-3xl font-bold text-gray-800 mb-2">Find Your Doctor</h1>
+          <p className='text-gray-600'>Browse through the doctors specialist.</p>
+        </div>
 
         {/* Filter Section */}
         <div className="flex flex-col lg:flex-row gap-6">
-            {/* Mobile Filter Button */}
-            <button 
-              onClick={() => setShowFilter(!showFilter)}
-              className="lg:hidden flex items-center gap-2 bg-white border border-gray-300 rounded-lg px-4 py-2.5 text-gray-700 hover:bg-gray-50 transition-colors"
-            >
-              <Filter className="w-4 h-4" />
-              <span>{selectedSpecialty || 'All Specialties'}</span>
-            </button>
+          {/* Mobile Filter Button */}
+          <button 
+            onClick={() => setShowFilter(!showFilter)}
+            className="lg:hidden flex items-center gap-2 bg-white border border-gray-300 rounded-lg px-4 py-2.5 text-gray-700 hover:bg-gray-50 transition-colors"
+          >
+            <span>🔍</span>
+            <span>{selectedSpecialty || 'All Specialties'}</span>
+          </button>
 
-            {/* Filter Sidebar */}
-            <div className={`${showFilter ? 'block' : 'hidden lg:block'} lg:w-64 shrink-0`}>
-              <div className="bg-white rounded-xl shadow-md p-6 border border-gray-100">
-                <h3 className="font-semibold text-gray-800 mb-4 flex items-center gap-2">
-                  <Filter className="w-4 h-4" />
-                  Filter by Specialty
-                </h3>
+          {/* Filter Sidebar */}
+          <div className={`${showFilter ? 'block' : 'hidden lg:block'} lg:w-64 shrink-0`}>
+            <div className="bg-white rounded-xl shadow-md p-6 border border-gray-100">
+              <h3 className="font-semibold text-gray-800 mb-4 flex items-center gap-2">
+                <span>🔽</span>
+                Filter by Specialty
+              </h3>
+              
+              <div className="space-y-2">
+                <button
+                  onClick={() => handleSpecialtyClick('')}
+                  className={`w-full text-left px-4 py-2.5 rounded-lg border transition-all duration-200 ${
+                    !selectedSpecialty 
+                      ? 'bg-blue-100 border-blue-300 text-blue-800 font-medium' 
+                      : 'border-gray-200 text-gray-700 hover:bg-gray-50'
+                  }`}
+                >
+                  All Specialties
+                </button>
                 
-                <div className="space-y-2">
+                {specialties.map((specialty) => (
                   <button
-                    onClick={() => handleSpecialtyClick('')}
+                    key={specialty}
+                    onClick={() => handleSpecialtyClick(specialty)}
                     className={`w-full text-left px-4 py-2.5 rounded-lg border transition-all duration-200 ${
-                      !selectedSpecialty 
-                        ? 'bg-blue-100 border-blue-300 text-blue-800 font-medium' 
+                      selectedSpecialty === specialty
+                        ? 'bg-blue-100 border-blue-300 text-blue-800 font-medium'
                         : 'border-gray-200 text-gray-700 hover:bg-gray-50'
                     }`}
                   >
-                    All Specialties
+                    {specialty}
                   </button>
-                  
-                  {specialties.map((specialty) => (
-                    <button
-                      key={specialty}
-                      onClick={() => handleSpecialtyClick(specialty)}
-                      className={`w-full text-left px-4 py-2.5 rounded-lg border transition-all duration-200 ${
-                        selectedSpecialty === specialty
-                          ? 'bg-blue-100 border-blue-300 text-blue-800 font-medium'
-                          : 'border-gray-200 text-gray-700 hover:bg-gray-50'
-                      }`}
-                    >
-                      {specialty}
-                    </button>
-                  ))}
+                ))}
+              </div>
+              
+              {/* Additional Filters */}
+              <div className="mt-6 pt-4 border-t border-gray-200">
+                <h4 className="font-medium text-gray-700 mb-3">Sort by</h4>
+                <select 
+                  value={sortBy}
+                  onChange={(e) => setSortBy(e.target.value)}
+                  className="w-full p-2 border border-gray-300 rounded-lg text-sm"
+                >
+                  <option value="name">Name (A-Z)</option>
+                  <option value="rating">Rating (High to Low)</option>
+                  <option value="experience">Experience (Most to Least)</option>
+                  <option value="slots">Available Slots</option>
+                </select>
+                
+                <div className="mt-3">
+                  <label className="flex items-center gap-2 text-sm text-gray-700">
+                    <input 
+                      type="checkbox"
+                      checked={showAvailableOnly}
+                      onChange={(e) => setShowAvailableOnly(e.target.checked)}
+                      className="rounded border-gray-300"
+                    />
+                    Show only available doctors
+                  </label>
                 </div>
               </div>
             </div>
+          </div>
 
-            {/* Results Section */}
-            <div className="flex-1">
-              {/* Results Header */}
-              <div className="flex items-center justify-between mb-6">
-                <div>
-                  <h2 className="text-2xl font-semibold text-gray-800">
-                    {selectedSpecialty ? `${selectedSpecialty}s` : 'All Doctors'}
-                  </h2>
-                  <p className="text-gray-600 mt-1">
-                    {filteredDoctors.length} doctor{filteredDoctors.length !== 1 ? 's' : ''} found
-                  </p>
-                </div>
+          {/* Results Section */}
+          <div className="flex-1">
+            {/* Results Header */}
+            <div className="flex items-center justify-between mb-6">
+              <div>
+                <h2 className="text-2xl font-semibold text-gray-800">
+                  {selectedSpecialty ? `${selectedSpecialty}s` : 'All Doctors'}
+                </h2>
+                <p className="text-gray-600 mt-1">
+                  {filteredDoctors.length} doctor{filteredDoctors.length !== 1 ? 's' : ''} found
+                </p>
               </div>
-
-              {/* Doctors Grid */}
-              {filteredDoctors.length > 0 ? (
-                <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-                  {filteredDoctors.map((doctor) => (
-                    <DoctorCard key={doctor.id} doctor={doctor} />
-                  ))}
-                </div>
-              ) : (
-                <div className="text-center py-12">
-                  <User className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                  <h3 className="text-xl font-medium text-gray-600 mb-2">No doctors found</h3>
-                  <p className="text-gray-500">Try selecting a different specialty</p>
-                </div>
-              )}
             </div>
+
+            {/* Doctors Grid */}
+            {filteredDoctors.length > 0 ? (
+              <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+                {filteredDoctors.map((doctor) => (
+                  <DoctorCard key={doctor.id} doctor={doctor} />
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-12">
+                <span className="text-6xl">👨‍⚕️</span>
+                <h3 className="text-xl font-medium text-gray-600 mb-2 mt-4">No doctors found</h3>
+                <p className="text-gray-500">Try selecting a different specialty or adjusting your filters</p>
+              </div>
+            )}
           </div>
         </div>
       </div>
+    </div>
   );
 };
 
