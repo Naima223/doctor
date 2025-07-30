@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 
 const Doctors = () => {
-  // Mock data with Bengali doctors and Bangladeshi details
   const mockDoctors = [
     {
       id: 1,
@@ -149,6 +148,16 @@ const Doctors = () => {
     }
   ];
 
+  const quickFilters = [
+    { name: 'All', specialty: '', icon: '👨‍⚕️', color: 'bg-gray-100 hover:bg-gray-200' },
+    { name: 'General', specialty: 'General physician', icon: '🩺', color: 'bg-blue-100 hover:bg-blue-200' },
+    { name: 'Women\'s Health', specialty: 'Gynecologist', icon: '👩‍⚕️', color: 'bg-pink-100 hover:bg-pink-200' },
+    { name: 'Skin Care', specialty: 'Dermatologist', icon: '🧴', color: 'bg-green-100 hover:bg-green-200' },
+    { name: 'Children', specialty: 'Pediatricians', icon: '👶', color: 'bg-yellow-100 hover:bg-yellow-200' },
+    { name: 'Brain & Nerves', specialty: 'Neurologist', icon: '🧠', color: 'bg-purple-100 hover:bg-purple-200' },
+    { name: 'Digestive', specialty: 'Gastroenterologist', icon: '🫃', color: 'bg-orange-100 hover:bg-orange-200' }
+  ];
+
   const specialties = [
     'General physician',
     'Gynecologist', 
@@ -162,7 +171,7 @@ const Doctors = () => {
   const [filteredDoctors, setFilteredDoctors] = useState(mockDoctors);
   const [sortBy, setSortBy] = useState('name');
   const [showAvailableOnly, setShowAvailableOnly] = useState(false);
-  const [showFilter, setShowFilter] = useState(false); // Added missing state
+  const [showFilter, setShowFilter] = useState(false);
 
   const applyFilter = () => {
     let filtered = mockDoctors;
@@ -207,8 +216,12 @@ const Doctors = () => {
     setShowFilter(false);
   };
 
+  const handleQuickFilter = (specialty) => {
+    setSelectedSpecialty(specialty);
+  };
+
   const DoctorCard = ({ doctor }) => (
-    <div className="bg-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden border border-gray-100 hover:border-blue-200">
+    <div className="bg-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden border border-gray-100 hover:border-blue-200 transform hover:-translate-y-1">
       <div className="p-6">
         <div className="flex items-start gap-4">
           <div className="relative">
@@ -220,7 +233,7 @@ const Doctors = () => {
                 e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(doctor.name)}&background=3b82f6&color=ffffff&size=400`;
               }}
             />
-            <div className="absolute -bottom-1 -right-1 bg-green-500 w-6 h-6 rounded-full border-2 border-white"></div>
+            <div className="absolute -bottom-1 -right-1 bg-green-500 w-6 h-6 rounded-full border-2 border-white animate-pulse"></div>
           </div>
           
           <div className="flex-1">
@@ -252,7 +265,7 @@ const Doctors = () => {
         </div>
         
         <div className="mt-4 pt-4 border-t border-gray-100">
-          <button className="w-full bg-gradient-to-r from-blue-600 to-blue-700 text-white py-2.5 px-4 rounded-lg font-medium hover:from-blue-700 hover:to-blue-800 transition-all duration-200 hover:shadow-md">
+          <button className="w-full bg-gradient-to-r from-blue-600 to-blue-700 text-white py-2.5 px-4 rounded-lg font-medium hover:from-blue-700 hover:to-blue-800 transition-all duration-200 hover:shadow-md transform hover:scale-105">
             Book Appointment
           </button>
         </div>
@@ -266,6 +279,42 @@ const Doctors = () => {
         <div className="mb-6">
           <h1 className="text-3xl font-bold text-gray-800 mb-2">Find Your Doctor</h1>
           <p className='text-gray-600'>Browse through the doctors specialist.</p>
+        </div>
+
+        {/* NEW FEATURE: Quick Specialty Filter Buttons */}
+        <div className="mb-8">
+          <h3 className="text-lg font-semibold text-gray-700 mb-4 flex items-center gap-2">
+            <span className="animate-pulse">⚡</span>
+            Quick Filter by Specialty
+          </h3>
+          <div className="flex flex-wrap gap-3">
+            {quickFilters.map((filter) => (
+              <button
+                key={filter.name}
+                onClick={() => handleQuickFilter(filter.specialty)}
+                className={`flex items-center gap-2 px-4 py-3 rounded-full border-2 transition-all duration-300 transform hover:scale-105 ${
+                  selectedSpecialty === filter.specialty
+                    ? 'border-blue-400 bg-blue-100 text-blue-800 shadow-lg scale-105'
+                    : `border-gray-200 ${filter.color} text-gray-700 hover:shadow-md`
+                }`}
+              >
+                <span className="text-xl animate-bounce" style={{animationDelay: `${Math.random() * 2}s`}}>
+                  {filter.icon}
+                </span>
+                <span className="font-medium text-sm">{filter.name}</span>
+                {filter.specialty && (
+                  <span className="bg-white bg-opacity-60 text-xs px-2 py-1 rounded-full">
+                    {mockDoctors.filter(doc => doc.speciality === filter.specialty).length}
+                  </span>
+                )}
+                {!filter.specialty && (
+                  <span className="bg-white bg-opacity-60 text-xs px-2 py-1 rounded-full">
+                    {mockDoctors.length}
+                  </span>
+                )}
+              </button>
+            ))}
+          </div>
         </div>
 
         {/* Filter Section */}
@@ -284,7 +333,7 @@ const Doctors = () => {
             <div className="bg-white rounded-xl shadow-md p-6 border border-gray-100">
               <h3 className="font-semibold text-gray-800 mb-4 flex items-center gap-2">
                 <span>🔽</span>
-                Filter by Specialty
+                Advanced Filters
               </h3>
               
               <div className="space-y-2">
@@ -366,7 +415,7 @@ const Doctors = () => {
               </div>
             ) : (
               <div className="text-center py-12">
-                <span className="text-6xl">👨‍⚕️</span>
+                <span className="text-6xl animate-bounce">👨‍⚕️</span>
                 <h3 className="text-xl font-medium text-gray-600 mb-2 mt-4">No doctors found</h3>
                 <p className="text-gray-500">Try selecting a different specialty or adjusting your filters</p>
               </div>
