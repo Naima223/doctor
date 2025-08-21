@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 
 const Doctors = () => {
-  const mockDoctors = [
+  // ============ DATA LAYER ============
+  const doctorsData = [
     {
       id: 1,
       name: "Dr. Aminul Islam",
@@ -12,7 +13,8 @@ const Doctors = () => {
       location: "Ibn Sina Medical College Hospital",
       phone: "+880 1711-123456",
       availableSlots: 12,
-      degree: "MBBS, FCPS"
+      degree: "MBBS, FCPS",
+      consultationFee: 800
     },
     {
       id: 2,
@@ -24,7 +26,8 @@ const Doctors = () => {
       location: "Square Hospitals Ltd.",
       phone: "+880 1712-234567",
       availableSlots: 8,
-      degree: "MBBS, DDV"
+      degree: "MBBS, DDV",
+      consultationFee: 1200
     },
     {
       id: 3,
@@ -36,19 +39,21 @@ const Doctors = () => {
       location: "Labaid Specialized Hospital",
       phone: "+880 1713-345678",
       availableSlots: 6,
-      degree: "MBBS, FCPS (Gynae)"
+      degree: "MBBS, FCPS (Gynae)",
+      consultationFee: 1000
     },
     {
       id: 4,
       name: "Dr. Mohammad Rahman",
-      speciality: "Pediatricians",
+      speciality: "Pediatrician",
       image: "/api/placeholder/400/400",
       rating: 4.9,
       experience: "15 years",
       location: "Bangladesh Specialized Hospital",
       phone: "+880 1714-456789",
       availableSlots: 10,
-      degree: "MBBS, DCH, FCPS"
+      degree: "MBBS, DCH, FCPS",
+      consultationFee: 900
     },
     {
       id: 5,
@@ -60,7 +65,8 @@ const Doctors = () => {
       location: "National Institute of Neurosciences & Hospital",
       phone: "+880 1715-567890",
       availableSlots: 4,
-      degree: "MBBS, FCPS (Neuro)"
+      degree: "MBBS, FCPS (Neuro)",
+      consultationFee: 1500
     },
     {
       id: 6,
@@ -72,7 +78,8 @@ const Doctors = () => {
       location: "United Hospital Limited",
       phone: "+880 1716-678901",
       availableSlots: 7,
-      degree: "MBBS, FCPS (Medicine)"
+      degree: "MBBS, FCPS (Medicine)",
+      consultationFee: 1100
     },
     {
       id: 7,
@@ -84,7 +91,8 @@ const Doctors = () => {
       location: "Government Employees Hospital",
       phone: "+880 1717-789012",
       availableSlots: 15,
-      degree: "MBBS"
+      degree: "MBBS",
+      consultationFee: 600
     },
     {
       id: 8,
@@ -96,7 +104,8 @@ const Doctors = () => {
       location: "Apollo Hospitals Dhaka",
       phone: "+880 1718-890123",
       availableSlots: 11,
-      degree: "MBBS, CCD"
+      degree: "MBBS, CCD",
+      consultationFee: 1000
     },
     {
       id: 9,
@@ -108,19 +117,21 @@ const Doctors = () => {
       location: "Dhaka Medical College Hospital",
       phone: "+880 1719-901234",
       availableSlots: 5,
-      degree: "MBBS, MS (Gynae)"
+      degree: "MBBS, MS (Gynae)",
+      consultationFee: 950
     },
     {
       id: 10,
       name: "Dr. Habibur Rahman",
-      speciality: "Pediatricians",
+      speciality: "Pediatrician",
       image: "/api/placeholder/400/400",
       rating: 4.6,
       experience: "11 years",
       location: "Evercare Hospital Dhaka",
       phone: "+880 1720-012345",
       availableSlots: 9,
-      degree: "MBBS, FCPS (Paediatrics)"
+      degree: "MBBS, FCPS (Paediatrics)",
+      consultationFee: 850
     },
     {
       id: 11,
@@ -132,7 +143,8 @@ const Doctors = () => {
       location: "Bangabandhu Sheikh Mujib Medical University",
       phone: "+880 1721-123456",
       availableSlots: 3,
-      degree: "MBBS, MD (Neurology)"
+      degree: "MBBS, MD (Neurology)",
+      consultationFee: 1800
     },
     {
       id: 12,
@@ -144,251 +156,339 @@ const Doctors = () => {
       location: "Popular Medical College Hospital",
       phone: "+880 1722-234567",
       availableSlots: 8,
-      degree: "MBBS, FCPS (Gastroenterology)"
+      degree: "MBBS, FCPS (Gastroenterology)",
+      consultationFee: 1300
     }
   ];
 
-  const quickFilters = [
-    { name: 'All', specialty: '', icon: '👨‍⚕️', color: 'bg-gray-100 hover:bg-gray-200' },
-    { name: 'General', specialty: 'General physician', icon: '🩺', color: 'bg-blue-100 hover:bg-blue-200' },
-    { name: 'Women\'s Health', specialty: 'Gynecologist', icon: '👩‍⚕️', color: 'bg-pink-100 hover:bg-pink-200' },
-    { name: 'Skin Care', specialty: 'Dermatologist', icon: '🧴', color: 'bg-green-100 hover:bg-green-200' },
-    { name: 'Children', specialty: 'Pediatricians', icon: '👶', color: 'bg-yellow-100 hover:bg-yellow-200' },
-    { name: 'Brain & Nerves', specialty: 'Neurologist', icon: '🧠', color: 'bg-purple-100 hover:bg-purple-200' },
-    { name: 'Digestive', specialty: 'Gastroenterologist', icon: '🫃', color: 'bg-orange-100 hover:bg-orange-200' }
+  const specialtyFilters = [
+    { name: 'All Doctors', specialty: '', icon: '👨‍⚕️', color: 'from-gray-500 to-gray-600', bgColor: 'bg-gray-50' },
+    { name: 'General Medicine', specialty: 'General physician', icon: '🩺', color: 'from-blue-500 to-blue-600', bgColor: 'bg-blue-50' },
+    { name: 'Women\'s Health', specialty: 'Gynecologist', icon: '👩‍⚕️', color: 'from-pink-500 to-pink-600', bgColor: 'bg-pink-50' },
+    { name: 'Skin Specialist', specialty: 'Dermatologist', icon: '🧴', color: 'from-green-500 to-green-600', bgColor: 'bg-green-50' },
+    { name: 'Child Care', specialty: 'Pediatrician', icon: '👶', color: 'from-yellow-500 to-yellow-600', bgColor: 'bg-yellow-50' },
+    { name: 'Brain & Nerves', specialty: 'Neurologist', icon: '🧠', color: 'from-purple-500 to-purple-600', bgColor: 'bg-purple-50' },
+    { name: 'Digestive Health', specialty: 'Gastroenterologist', icon: '🫃', color: 'from-orange-500 to-orange-600', bgColor: 'bg-orange-50' }
   ];
 
-  const specialties = [
-    'General physician',
-    'Gynecologist', 
-    'Dermatologist',
-    'Pediatricians',
-    'Neurologist',
-    'Gastroenterologist'
-  ];
+  // ============ STATE MANAGEMENT ============
+  const [filters, setFilters] = useState({
+    specialty: '',
+    sortBy: 'name',
+    availableOnly: false,
+    priceRange: 'all'
+  });
+  const [showMobileFilters, setShowMobileFilters] = useState(false);
+  const [viewMode, setViewMode] = useState('grid'); // 'grid' or 'list'
 
-  const [selectedSpecialty, setSelectedSpecialty] = useState('');
-  const [filteredDoctors, setFilteredDoctors] = useState(mockDoctors);
-  const [sortBy, setSortBy] = useState('name');
-  const [showAvailableOnly, setShowAvailableOnly] = useState(false);
-  const [showFilter, setShowFilter] = useState(false);
+  // ============ COMPUTED VALUES ============
+  const filteredAndSortedDoctors = useMemo(() => {
+    let result = [...doctorsData];
 
-  const applyFilter = () => {
-    let filtered = mockDoctors;
-    
     // Filter by specialty
-    if (selectedSpecialty) {
-      filtered = filtered.filter(doc => doc.speciality === selectedSpecialty);
+    if (filters.specialty) {
+      result = result.filter(doctor => doctor.speciality === filters.specialty);
     }
-    
+
     // Filter by availability
-    if (showAvailableOnly) {
-      filtered = filtered.filter(doc => doc.availableSlots > 0);
+    if (filters.availableOnly) {
+      result = result.filter(doctor => doctor.availableSlots > 0);
     }
-    
-    // Sort doctors
-    filtered.sort((a, b) => {
-      switch (sortBy) {
+
+    // Filter by price range
+    if (filters.priceRange !== 'all') {
+      switch (filters.priceRange) {
+        case 'low':
+          result = result.filter(doctor => doctor.consultationFee <= 800);
+          break;
+        case 'medium':
+          result = result.filter(doctor => doctor.consultationFee > 800 && doctor.consultationFee <= 1200);
+          break;
+        case 'high':
+          result = result.filter(doctor => doctor.consultationFee > 1200);
+          break;
+      }
+    }
+
+    // Sort results
+    result.sort((a, b) => {
+      switch (filters.sortBy) {
         case 'rating':
           return b.rating - a.rating;
         case 'experience':
           return parseInt(b.experience) - parseInt(a.experience);
+        case 'price-low':
+          return a.consultationFee - b.consultationFee;
+        case 'price-high':
+          return b.consultationFee - a.consultationFee;
         case 'slots':
           return b.availableSlots - a.availableSlots;
         default:
           return a.name.localeCompare(b.name);
       }
     });
-    
-    setFilteredDoctors(filtered);
+
+    return result;
+  }, [filters, doctorsData]);
+
+  const statistics = useMemo(() => ({
+    total: filteredAndSortedDoctors.length,
+    avgRating: filteredAndSortedDoctors.length > 0 
+      ? (filteredAndSortedDoctors.reduce((acc, doc) => acc + doc.rating, 0) / filteredAndSortedDoctors.length).toFixed(1)
+      : '0.0',
+    totalSlots: filteredAndSortedDoctors.reduce((acc, doc) => acc + doc.availableSlots, 0),
+    avgFee: filteredAndSortedDoctors.length > 0
+      ? Math.round(filteredAndSortedDoctors.reduce((acc, doc) => acc + doc.consultationFee, 0) / filteredAndSortedDoctors.length)
+      : 0
+  }), [filteredAndSortedDoctors]);
+
+  const getSpecialtyCount = (specialty) => {
+    if (!specialty) return doctorsData.length;
+    return doctorsData.filter(doc => doc.speciality === specialty).length;
   };
 
-  useEffect(() => {
-    applyFilter();
-  }, [selectedSpecialty, sortBy, showAvailableOnly]);
-
-  const handleSpecialtyClick = (specialty) => {
-    if (selectedSpecialty === specialty) {
-      setSelectedSpecialty('');
-    } else {
-      setSelectedSpecialty(specialty);
-    }
-    setShowFilter(false);
+  // ============ EVENT HANDLERS ============
+  const updateFilter = (key, value) => {
+    setFilters(prev => ({ ...prev, [key]: value }));
   };
 
-  const handleQuickFilter = (specialty) => {
-    setSelectedSpecialty(specialty);
+  const clearAllFilters = () => {
+    setFilters({
+      specialty: '',
+      sortBy: 'name',
+      availableOnly: false,
+      priceRange: 'all'
+    });
   };
 
+  const handleBookAppointment = (doctor) => {
+    alert(`🎉 Booking appointment with ${doctor.name}!\n\n📋 Details:\n• Specialty: ${doctor.speciality}\n• Fee: ৳${doctor.consultationFee}\n• Phone: ${doctor.phone}\n• Available Slots: ${doctor.availableSlots}`);
+  };
+
+  // ============ COMPONENTS ============
   const DoctorCard = ({ doctor }) => (
-    <div className="bg-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden border border-gray-100 hover:border-blue-200 transform hover:-translate-y-1">
-      <div className="p-6">
-        <div className="flex items-start gap-4">
-          <div className="relative">
-            <img 
-              src={doctor.image} 
-              alt={doctor.name}
-              className="w-20 h-20 rounded-full object-cover border-4 border-blue-50 bg-gray-200"
-              onError={(e) => {
-                e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(doctor.name)}&background=3b82f6&color=ffffff&size=400`;
-              }}
-            />
-            <div className="absolute -bottom-1 -right-1 bg-green-500 w-6 h-6 rounded-full border-2 border-white animate-pulse"></div>
+    <div className={`bg-white rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-500 overflow-hidden border border-gray-100 hover:border-blue-200 transform hover:-translate-y-2 ${viewMode === 'list' ? 'flex' : ''}`}>
+      <div className={`${viewMode === 'list' ? 'w-32 h-32' : 'w-full h-48'} relative overflow-hidden`}>
+        <img 
+          src={doctor.image} 
+          alt={doctor.name}
+          className="w-full h-full object-cover"
+          onError={(e) => {
+            e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(doctor.name)}&background=3b82f6&color=ffffff&size=400`;
+          }}
+        />
+        <div className="absolute top-2 right-2 bg-green-500 text-white text-xs px-2 py-1 rounded-full font-medium animate-pulse">
+          {doctor.availableSlots > 0 ? 'Available' : 'Busy'}
+        </div>
+        <div className="absolute bottom-2 left-2 bg-black bg-opacity-60 text-white text-xs px-2 py-1 rounded-full">
+          ⭐ {doctor.rating}
+        </div>
+      </div>
+      
+      <div className="p-6 flex-1">
+        <div className="mb-3">
+          <h3 className="font-bold text-xl text-gray-900 mb-1">{doctor.name}</h3>
+          <p className="text-blue-600 font-semibold text-sm mb-1">{doctor.speciality}</p>
+          <p className="text-xs text-gray-500">{doctor.degree}</p>
+        </div>
+        
+        <div className="space-y-2 text-sm text-gray-600 mb-4">
+          <div className="flex items-center gap-2">
+            <span>🏥</span>
+            <span className="truncate">{doctor.location}</span>
           </div>
-          
-          <div className="flex-1">
-            <h3 className="font-bold text-lg text-gray-800 mb-1">{doctor.name}</h3>
-            <p className="text-blue-600 font-medium mb-1">{doctor.speciality}</p>
-            <p className="text-xs text-gray-500 mb-2">{doctor.degree}</p>
-            
-            <div className="flex items-center gap-1 mb-2">
-              <span className="text-yellow-400">⭐</span>
-              <span className="text-sm font-medium text-gray-700">{doctor.rating}</span>
-              <span className="text-sm text-gray-500">• {doctor.experience} exp</span>
-            </div>
-            
-            <div className="space-y-1 text-sm text-gray-600">
-              <div className="flex items-center gap-2">
-                <span>📍</span>
-                <span>{doctor.location}</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <span>📞</span>
-                <span>{doctor.phone}</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <span>🕒</span>
-                <span className="text-green-600 font-medium">{doctor.availableSlots} slots available</span>
-              </div>
-            </div>
+          <div className="flex items-center gap-2">
+            <span>📞</span>
+            <span>{doctor.phone}</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span>💼</span>
+            <span>{doctor.experience} experience</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span>💰</span>
+            <span className="font-semibold text-green-600">৳{doctor.consultationFee}</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span>🕒</span>
+            <span className={`font-semibold ${doctor.availableSlots > 0 ? 'text-green-600' : 'text-red-500'}`}>
+              {doctor.availableSlots} slots available
+            </span>
           </div>
         </div>
         
-        <div className="mt-4 pt-4 border-t border-gray-100">
-          <button className="w-full bg-gradient-to-r from-blue-600 to-blue-700 text-white py-2.5 px-4 rounded-lg font-medium hover:from-blue-700 hover:to-blue-800 transition-all duration-200 hover:shadow-md transform hover:scale-105">
-            Book Appointment
-          </button>
+        <button 
+          onClick={() => handleBookAppointment(doctor)}
+          disabled={doctor.availableSlots === 0}
+          className={`w-full py-3 px-4 rounded-xl font-semibold transition-all duration-300 transform hover:scale-105 ${
+            doctor.availableSlots > 0
+              ? 'bg-gradient-to-r from-blue-600 to-blue-700 text-white hover:from-blue-700 hover:to-blue-800 shadow-lg hover:shadow-xl'
+              : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+          }`}
+        >
+          {doctor.availableSlots > 0 ? '📅 Book Appointment' : '❌ Not Available'}
+        </button>
+      </div>
+    </div>
+  );
+
+  const SpecialtyFilter = ({ filter }) => (
+    <button
+      onClick={() => updateFilter('specialty', filter.specialty)}
+      className={`group flex flex-col items-center p-4 rounded-2xl border-2 transition-all duration-300 transform hover:scale-105 min-w-[140px] ${
+        filters.specialty === filter.specialty
+          ? `border-blue-400 ${filter.bgColor} shadow-lg scale-105`
+          : 'border-gray-200 bg-white hover:border-gray-300 hover:shadow-md'
+      }`}
+    >
+      <div className={`w-12 h-12 rounded-full bg-gradient-to-r ${filter.color} flex items-center justify-center text-2xl mb-2 group-hover:scale-110 transition-transform`}>
+        {filter.icon}
+      </div>
+      <span className="font-semibold text-sm text-center text-gray-800">{filter.name}</span>
+      <span className="text-xs text-gray-500 mt-1">
+        {getSpecialtyCount(filter.specialty)} doctors
+      </span>
+    </button>
+  );
+
+  const StatsCard = ({ icon, label, value, color = "text-gray-600" }) => (
+    <div className="bg-white rounded-xl p-4 border border-gray-100 shadow-sm">
+      <div className="flex items-center gap-2">
+        <span className="text-2xl">{icon}</span>
+        <div>
+          <p className="text-xs text-gray-500">{label}</p>
+          <p className={`font-bold text-lg ${color}`}>{value}</p>
         </div>
       </div>
     </div>
   );
 
+  // ============ RENDER ============
   return (
-    <div className="bg-gradient-to-br from-blue-50 via-white to-indigo-50 p-4 min-h-screen">
-      <div className="max-w-7xl mx-auto">
-        <div className="mb-6">
-          <h1 className="text-3xl font-bold text-gray-800 mb-2">Find Your Doctor</h1>
-          <p className='text-gray-600'>Browse through the doctors specialist.</p>
+    <div className="bg-gradient-to-br from-blue-50 via-white to-indigo-50 min-h-screen">
+      <div className="max-w-7xl mx-auto px-4 py-8">
+        {/* Header Section */}
+        <div className="text-center mb-8">
+          <h1 className="text-4xl font-bold text-gray-900 mb-4">Find Your Perfect Doctor</h1>
+          <p className="text-lg text-gray-600 max-w-2xl mx-auto">
+            Connect with experienced healthcare professionals across Bangladesh. 
+            Book appointments with top-rated doctors in various specialties.
+          </p>
         </div>
 
-        {/* NEW FEATURE: Quick Specialty Filter Buttons */}
+        {/* Statistics Cards */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+          <StatsCard icon="👨‍⚕️" label="Total Doctors" value={statistics.total} color="text-blue-600" />
+          <StatsCard icon="⭐" label="Avg Rating" value={statistics.avgRating} color="text-yellow-600" />
+          <StatsCard icon="🕒" label="Available Slots" value={statistics.totalSlots} color="text-green-600" />
+          <StatsCard icon="💰" label="Avg Fee" value={`৳${statistics.avgFee}`} color="text-purple-600" />
+        </div>
+
+        {/* Quick Specialty Filters */}
         <div className="mb-8">
-          <h3 className="text-lg font-semibold text-gray-700 mb-4 flex items-center gap-2">
-            <span className="animate-pulse">⚡</span>
-            Quick Filter by Specialty
-          </h3>
-          <div className="flex flex-wrap gap-3">
-            {quickFilters.map((filter) => (
-              <button
-                key={filter.name}
-                onClick={() => handleQuickFilter(filter.specialty)}
-                className={`flex items-center gap-2 px-4 py-3 rounded-full border-2 transition-all duration-300 transform hover:scale-105 ${
-                  selectedSpecialty === filter.specialty
-                    ? 'border-blue-400 bg-blue-100 text-blue-800 shadow-lg scale-105'
-                    : `border-gray-200 ${filter.color} text-gray-700 hover:shadow-md`
-                }`}
-              >
-                <span className="text-xl animate-bounce" style={{animationDelay: `${Math.random() * 2}s`}}>
-                  {filter.icon}
-                </span>
-                <span className="font-medium text-sm">{filter.name}</span>
-                {filter.specialty && (
-                  <span className="bg-white bg-opacity-60 text-xs px-2 py-1 rounded-full">
-                    {mockDoctors.filter(doc => doc.speciality === filter.specialty).length}
-                  </span>
-                )}
-                {!filter.specialty && (
-                  <span className="bg-white bg-opacity-60 text-xs px-2 py-1 rounded-full">
-                    {mockDoctors.length}
-                  </span>
-                )}
-              </button>
+          <h2 className="text-2xl font-bold text-gray-900 mb-6 text-center">Choose Your Specialty</h2>
+          <div className="flex gap-4 overflow-x-auto pb-4 justify-center">
+            {specialtyFilters.map((filter) => (
+              <SpecialtyFilter key={filter.name} filter={filter} />
             ))}
           </div>
         </div>
 
-        {/* Filter Section */}
-        <div className="flex flex-col lg:flex-row gap-6">
-          {/* Mobile Filter Button */}
-          <button 
-            onClick={() => setShowFilter(!showFilter)}
-            className="lg:hidden flex items-center gap-2 bg-white border border-gray-300 rounded-lg px-4 py-2.5 text-gray-700 hover:bg-gray-50 transition-colors"
-          >
-            <span>🔍</span>
-            <span>{selectedSpecialty || 'All Specialties'}</span>
-          </button>
-
-          {/* Filter Sidebar */}
-          <div className={`${showFilter ? 'block' : 'hidden lg:block'} lg:w-64 shrink-0`}>
-            <div className="bg-white rounded-xl shadow-md p-6 border border-gray-100">
-              <h3 className="font-semibold text-gray-800 mb-4 flex items-center gap-2">
-                <span>🔽</span>
+        <div className="flex flex-col lg:flex-row gap-8">
+          {/* Advanced Filters Sidebar */}
+          <div className="lg:w-80">
+            <div className="bg-white rounded-2xl shadow-lg p-6 border border-gray-100 sticky top-4">
+              <h3 className="font-bold text-lg text-gray-900 mb-6 flex items-center gap-2">
+                <span>🔧</span>
                 Advanced Filters
               </h3>
               
-              <div className="space-y-2">
-                <button
-                  onClick={() => handleSpecialtyClick('')}
-                  className={`w-full text-left px-4 py-2.5 rounded-lg border transition-all duration-200 ${
-                    !selectedSpecialty 
-                      ? 'bg-blue-100 border-blue-300 text-blue-800 font-medium' 
-                      : 'border-gray-200 text-gray-700 hover:bg-gray-50'
-                  }`}
-                >
-                  All Specialties
-                </button>
-                
-                {specialties.map((specialty) => (
-                  <button
-                    key={specialty}
-                    onClick={() => handleSpecialtyClick(specialty)}
-                    className={`w-full text-left px-4 py-2.5 rounded-lg border transition-all duration-200 ${
-                      selectedSpecialty === specialty
-                        ? 'bg-blue-100 border-blue-300 text-blue-800 font-medium'
-                        : 'border-gray-200 text-gray-700 hover:bg-gray-50'
-                    }`}
-                  >
-                    {specialty}
-                  </button>
-                ))}
-              </div>
-              
-              {/* Additional Filters */}
-              <div className="mt-6 pt-4 border-t border-gray-200">
-                <h4 className="font-medium text-gray-700 mb-3">Sort by</h4>
+              {/* Sort Options */}
+              <div className="mb-6">
+                <label className="block text-sm font-semibold text-gray-700 mb-3">Sort By</label>
                 <select 
-                  value={sortBy}
-                  onChange={(e) => setSortBy(e.target.value)}
-                  className="w-full p-2 border border-gray-300 rounded-lg text-sm"
+                  value={filters.sortBy}
+                  onChange={(e) => updateFilter('sortBy', e.target.value)}
+                  className="w-full p-3 border border-gray-300 rounded-xl text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all"
                 >
                   <option value="name">Name (A-Z)</option>
-                  <option value="rating">Rating (High to Low)</option>
-                  <option value="experience">Experience (Most to Least)</option>
-                  <option value="slots">Available Slots</option>
+                  <option value="rating">Highest Rating</option>
+                  <option value="experience">Most Experience</option>
+                  <option value="price-low">Price: Low to High</option>
+                  <option value="price-high">Price: High to Low</option>
+                  <option value="slots">Most Available</option>
                 </select>
-                
-                <div className="mt-3">
-                  <label className="flex items-center gap-2 text-sm text-gray-700">
-                    <input 
-                      type="checkbox"
-                      checked={showAvailableOnly}
-                      onChange={(e) => setShowAvailableOnly(e.target.checked)}
-                      className="rounded border-gray-300"
-                    />
-                    Show only available doctors
-                  </label>
+              </div>
+
+              {/* Price Range Filter */}
+              <div className="mb-6">
+                <label className="block text-sm font-semibold text-gray-700 mb-3">Price Range</label>
+                <div className="space-y-2">
+                  {[
+                    { value: 'all', label: 'All Prices', count: doctorsData.length },
+                    { value: 'low', label: 'Under ৳800', count: doctorsData.filter(d => d.consultationFee <= 800).length },
+                    { value: 'medium', label: '৳800 - ৳1200', count: doctorsData.filter(d => d.consultationFee > 800 && d.consultationFee <= 1200).length },
+                    { value: 'high', label: 'Above ৳1200', count: doctorsData.filter(d => d.consultationFee > 1200).length }
+                  ].map((option) => (
+                    <label key={option.value} className="flex items-center gap-2 cursor-pointer p-2 rounded-lg hover:bg-gray-50">
+                      <input
+                        type="radio"
+                        name="priceRange"
+                        value={option.value}
+                        checked={filters.priceRange === option.value}
+                        onChange={(e) => updateFilter('priceRange', e.target.value)}
+                        className="text-blue-600 focus:ring-blue-500"
+                      />
+                      <span className="text-sm text-gray-700">{option.label}</span>
+                      <span className="text-xs text-gray-500">({option.count})</span>
+                    </label>
+                  ))}
                 </div>
               </div>
+
+              {/* Availability Filter */}
+              <div className="mb-6">
+                <label className="flex items-center gap-2 cursor-pointer p-2 rounded-lg hover:bg-gray-50">
+                  <input 
+                    type="checkbox"
+                    checked={filters.availableOnly}
+                    onChange={(e) => updateFilter('availableOnly', e.target.checked)}
+                    className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                  />
+                  <span className="text-sm font-semibold text-gray-700">Available Doctors Only</span>
+                </label>
+              </div>
+
+              {/* View Mode Toggle */}
+              <div className="mb-6">
+                <label className="block text-sm font-semibold text-gray-700 mb-3">View Mode</label>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setViewMode('grid')}
+                    className={`flex-1 p-2 rounded-lg text-sm font-medium transition-all ${
+                      viewMode === 'grid' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                    }`}
+                  >
+                    🔲 Grid
+                  </button>
+                  <button
+                    onClick={() => setViewMode('list')}
+                    className={`flex-1 p-2 rounded-lg text-sm font-medium transition-all ${
+                      viewMode === 'list' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                    }`}
+                  >
+                    📋 List
+                  </button>
+                </div>
+              </div>
+
+              {/* Clear Filters */}
+              <button
+                onClick={clearAllFilters}
+                className="w-full bg-gray-100 text-gray-700 py-2 px-4 rounded-xl font-medium hover:bg-gray-200 transition-all"
+              >
+                🔄 Clear All Filters
+              </button>
             </div>
           </div>
 
@@ -397,27 +497,40 @@ const Doctors = () => {
             {/* Results Header */}
             <div className="flex items-center justify-between mb-6">
               <div>
-                <h2 className="text-2xl font-semibold text-gray-800">
-                  {selectedSpecialty ? `${selectedSpecialty}s` : 'All Doctors'}
+                <h2 className="text-2xl font-bold text-gray-900">
+                  {filters.specialty ? `${filters.specialty}s` : 'All Doctors'}
                 </h2>
-                <p className="text-gray-600 mt-1">
-                  {filteredDoctors.length} doctor{filteredDoctors.length !== 1 ? 's' : ''} found
+                <p className="text-gray-600">
+                  Showing {filteredAndSortedDoctors.length} of {doctorsData.length} doctors
                 </p>
               </div>
             </div>
 
-            {/* Doctors Grid */}
-            {filteredDoctors.length > 0 ? (
-              <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-                {filteredDoctors.map((doctor) => (
+            {/* Doctors Grid/List */}
+            {filteredAndSortedDoctors.length > 0 ? (
+              <div className={`grid gap-6 ${
+                viewMode === 'grid' 
+                  ? 'grid-cols-1 xl:grid-cols-2' 
+                  : 'grid-cols-1'
+              }`}>
+                {filteredAndSortedDoctors.map((doctor) => (
                   <DoctorCard key={doctor.id} doctor={doctor} />
                 ))}
               </div>
             ) : (
-              <div className="text-center py-12">
-                <span className="text-6xl animate-bounce">👨‍⚕️</span>
-                <h3 className="text-xl font-medium text-gray-600 mb-2 mt-4">No doctors found</h3>
-                <p className="text-gray-500">Try selecting a different specialty or adjusting your filters</p>
+              <div className="text-center py-16 bg-white rounded-2xl shadow-lg">
+                <span className="text-8xl animate-bounce block mb-4">🔍</span>
+                <h3 className="text-2xl font-bold text-gray-600 mb-2">No Doctors Found</h3>
+                <p className="text-gray-500 mb-6 max-w-md mx-auto">
+                  We couldn't find any doctors matching your current filters. 
+                  Try adjusting your search criteria.
+                </p>
+                <button
+                  onClick={clearAllFilters}
+                  className="bg-blue-600 text-white px-8 py-3 rounded-xl font-semibold hover:bg-blue-700 transition-all transform hover:scale-105"
+                >
+                  🔄 Reset Filters
+                </button>
               </div>
             )}
           </div>
