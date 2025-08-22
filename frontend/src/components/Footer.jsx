@@ -8,7 +8,7 @@ const Footer = () => {
 
         <div>
           <img className='mb-5 w-40' src={assets.logo} alt="" />
-          <p className='w-full md:w-2/3 text-gray-600 leading-6'>QuickDoc is a doctor appointment platform that lets patients easily search for doctors by specialty, location, or availability and book appointments online. It offers a user-friendly interface for both patients and doctors to manage schedules, view appointments, and maintain medical records.</p>
+          <p className='w-full md:w-2/3 text-gray-600 leading-6'>QuickDoc is a doctor appointment platform that lets patients easily search for doctors by specialty, location, or availability and booking appointments online. It offers a user-friendly interface for both patients and doctors to manage schedules, view appointments, and maintain medical records.</p>
         </div>
 
         <div>
