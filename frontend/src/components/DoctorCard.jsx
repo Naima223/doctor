@@ -7,7 +7,7 @@ const Doctors = () => {
     getAllDoctors: () => [
       {
         id: 1,
-        name: "Dr. Aminul Islam",
+        name: "Dr. Amin Islam",
         speciality: "General physician",
         image: "/api/placeholder/400/400",
         rating: 4.8,
@@ -19,7 +19,7 @@ const Doctors = () => {
       },
       {
         id: 2,
-        name: "Dr. Fatema Khatun",
+        name: "Dr. Fatema Begum",
         speciality: "Dermatologist",
         image: "/api/placeholder/400/400",
         rating: 4.9,
