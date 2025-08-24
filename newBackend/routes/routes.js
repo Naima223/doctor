@@ -1,7 +1,8 @@
-import mongoose from "mongoose";    
-import { getDoctor, newDoctor } from "../controllers/doctorController.js";
+import express from "express";
+import { getAllDoctors, newDoctor } from "../controllers/doctorController.js";
 
 const router = express.Router();
-router.get('/', getDoctor);
-router.post('/', newDoctor);    
+router.get("/", getAllDoctors);
+router.post("/", newDoctor);
+
 export default router;
