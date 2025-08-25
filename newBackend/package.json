@@ -1,17 +1,14 @@
 {
   "name": "newBackend",
   "version": "1.0.0",
-    "description": "",
-    "type": "module",
+  "description": "",
+  "type": "module",
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "node index.js",
-    "dev": "nodemon index.js"
+    "start": "node newBackend.js",
+    "dev": "nodemon newBackend.js"
   },
-
- 
-
   "keywords": [],
   "author": "",
   "license": "ISC",
