@@ -11,7 +11,14 @@ connectDB();
 
 const app = express();
 
-app.use(cors());
+// Updated CORS configuration for Vite frontend (port 5173)
+app.use(cors({
+    origin: 'http://localhost:5173', // Your Vite frontend port
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'token']
+}));
+
 app.use(express.json());    
 
 // All routes under /api
