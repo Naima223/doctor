@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import axios from 'axios'; 
 
 const Doctors = () => {
   // Doctor data and utility functions (moved from separate component)
