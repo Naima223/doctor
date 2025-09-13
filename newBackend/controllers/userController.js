@@ -1,14 +1,12 @@
-// controllers/userController.js
-import bcrypt from "bcrypt";
-import jwt from "jsonwebtoken";
-import User from "../list/User.js";
+import bcrypt from 'bcrypt';
+import jwt from 'jsonwebtoken';
+import User from '../models/User.js';
 
-// Register User
-const registerUser = async (req, res) => {
+// Register new user
+export const registerUser = async (req, res) => {
   try {
     const { name, email, password } = req.body;
 
-    // Validate required fields
     if (!name || !email || !password) {
       return res.status(400).json({
         success: false,
@@ -25,14 +23,6 @@ const registerUser = async (req, res) => {
       });
     }
 
-    // Validate password length
-    if (password.length < 6) {
-      return res.status(400).json({
-        success: false,
-        message: "Password must be at least 6 characters long"
-      });
-    }
-
     // Hash password
     const saltRounds = 10;
     const hashedPassword = await bcrypt.hash(password, saltRounds);
@@ -46,7 +36,7 @@ const registerUser = async (req, res) => {
 
     const user = await newUser.save();
 
-    // Create JWT token
+    // Generate JWT token
     const token = jwt.sign(
       { id: user._id },
       process.env.JWT_SECRET || "your_jwt_secret_key",
@@ -73,12 +63,11 @@ const registerUser = async (req, res) => {
   }
 };
 
-// Login User
-const loginUser = async (req, res) => {
+// Login user
+export const loginUser = async (req, res) => {
   try {
     const { email, password } = req.body;
 
-    // Validate required fields
     if (!email || !password) {
       return res.status(400).json({
         success: false,
@@ -86,7 +75,7 @@ const loginUser = async (req, res) => {
       });
     }
 
-    // Find user by email
+    // Find user
     const user = await User.findOne({ email });
     if (!user) {
       return res.status(401).json({
@@ -104,7 +93,7 @@ const loginUser = async (req, res) => {
       });
     }
 
-    // Create JWT token
+    // Generate JWT token
     const token = jwt.sign(
       { id: user._id },
       process.env.JWT_SECRET || "your_jwt_secret_key",
@@ -131,10 +120,9 @@ const loginUser = async (req, res) => {
   }
 };
 
-// Get User Profile (Protected Route)
-const getUserProfile = async (req, res) => {
+// Get user profile
+export const getUserProfile = async (req, res) => {
   try {
-    // req.user is set by the authenticateToken middleware
     const user = await User.findById(req.user._id).select('-password');
     
     if (!user) {
@@ -150,8 +138,11 @@ const getUserProfile = async (req, res) => {
         id: user._id,
         name: user.name,
         email: user.email,
-        createdAt: user.createdAt,
-        updatedAt: user.updatedAt
+        phone: user.phone || '',
+        address: user.address || '',
+        gender: user.gender || '',
+        dob: user.dob || '',
+        image: user.image || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name)}&background=3b82f6&color=ffffff&size=400`
       }
     });
 
@@ -164,13 +155,12 @@ const getUserProfile = async (req, res) => {
   }
 };
 
-// Update User Profile (Protected Route)
-const updateUserProfile = async (req, res) => {
+// Update user profile
+export const updateUserProfile = async (req, res) => {
   try {
-    const { name, email, currentPassword, newPassword } = req.body;
-    const userId = req.user._id;
-
-    const user = await User.findById(userId);
+    const { name, phone, address, gender, dob } = req.body;
+    
+    const user = await User.findById(req.user._id);
     if (!user) {
       return res.status(404).json({
         success: false,
@@ -178,66 +168,27 @@ const updateUserProfile = async (req, res) => {
       });
     }
 
-    // Update name if provided
-    if (name) {
-      user.name = name.trim();
-    }
+    // Update user fields
+    if (name) user.name = name;
+    if (phone) user.phone = phone;
+    if (address) user.address = address;
+    if (gender) user.gender = gender;
+    if (dob) user.dob = dob;
 
-    // Update email if provided
-    if (email) {
-      const emailExists = await User.findOne({ 
-        email: email.toLowerCase(), 
-        _id: { $ne: userId } 
-      });
-      
-      if (emailExists) {
-        return res.status(400).json({
-          success: false,
-          message: "Email already exists"
-        });
-      }
-      
-      user.email = email.toLowerCase().trim();
-    }
-
-    // Update password if provided
-    if (newPassword) {
-      if (!currentPassword) {
-        return res.status(400).json({
-          success: false,
-          message: "Current password is required to set new password"
-        });
-      }
-
-      const isCurrentPasswordValid = await bcrypt.compare(currentPassword, user.password);
-      if (!isCurrentPasswordValid) {
-        return res.status(400).json({
-          success: false,
-          message: "Current password is incorrect"
-        });
-      }
-
-      if (newPassword.length < 6) {
-        return res.status(400).json({
-          success: false,
-          message: "New password must be at least 6 characters long"
-        });
-      }
-
-      const saltRounds = 10;
-      user.password = await bcrypt.hash(newPassword, saltRounds);
-    }
-
-    const updatedUser = await user.save();
+    await user.save();
 
     res.json({
       success: true,
       message: "Profile updated successfully",
       user: {
-        id: updatedUser._id,
-        name: updatedUser.name,
-        email: updatedUser.email,
-        updatedAt: updatedUser.updatedAt
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        phone: user.phone || '',
+        address: user.address || '',
+        gender: user.gender || '',
+        dob: user.dob || '',
+        image: user.image || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name)}&background=3b82f6&color=ffffff&size=400`
       }
     });
 
@@ -249,5 +200,3 @@ const updateUserProfile = async (req, res) => {
     });
   }
 };
-
-export { registerUser, loginUser, getUserProfile, updateUserProfile };

@@ -1,165 +1,23 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useContext } from 'react';
+import axios from 'axios';
+import { toast } from 'react-toastify';
+import { AppContext } from '../context/AppContext';
+import DoctorCard from '../components/DoctorCard';
 
 const Doctors = () => {
-  // ============ DATA LAYER ============
-  const doctorsData = [
-    {
-      id: 1,
-      name: "Dr. Aminul Islam",
-      speciality: "General physician",
-      image: "/api/placeholder/400/400",
-      rating: 4.8,
-      experience: "8 years",
-      location: "Ibn Sina Medical College Hospital",
-      phone: "+880 1711-123456",
-      availableSlots: 12,
-      degree: "MBBS, FCPS",
-      consultationFee: 800
-    },
-    {
-      id: 2,
-      name: "Dr. Fatema Khatun",
-      speciality: "Dermatologist",
-      image: "/api/placeholder/400/400",
-      rating: 4.9,
-      experience: "12 years",
-      location: "Square Hospitals Ltd.",
-      phone: "+880 1712-234567",
-      availableSlots: 8,
-      degree: "MBBS, DDV",
-      consultationFee: 1200
-    },
-    {
-      id: 3,
-      name: "Dr. Rashida Begum",
-      speciality: "Gynecologist",
-      image: "/api/placeholder/400/400",
-      rating: 4.7,
-      experience: "10 years",
-      location: "Labaid Specialized Hospital",
-      phone: "+880 1713-345678",
-      availableSlots: 6,
-      degree: "MBBS, FCPS (Gynae)",
-      consultationFee: 1000
-    },
-    {
-      id: 4,
-      name: "Dr. Mohammad Rahman",
-      speciality: "Pediatrician",
-      image: "/api/placeholder/400/400",
-      rating: 4.9,
-      experience: "15 years",
-      location: "Bangladesh Specialized Hospital",
-      phone: "+880 1714-456789",
-      availableSlots: 10,
-      degree: "MBBS, DCH, FCPS",
-      consultationFee: 900
-    },
-    {
-      id: 5,
-      name: "Dr. Nazrul Islam",
-      speciality: "Neurologist",
-      image: "/api/placeholder/400/400",
-      rating: 4.8,
-      experience: "18 years",
-      location: "National Institute of Neurosciences & Hospital",
-      phone: "+880 1715-567890",
-      availableSlots: 4,
-      degree: "MBBS, FCPS (Neuro)",
-      consultationFee: 1500
-    },
-    {
-      id: 6,
-      name: "Dr. Shahida Parveen",
-      speciality: "Gastroenterologist",
-      image: "/api/placeholder/400/400",
-      rating: 4.6,
-      experience: "14 years",
-      location: "United Hospital Limited",
-      phone: "+880 1716-678901",
-      availableSlots: 7,
-      degree: "MBBS, FCPS (Medicine)",
-      consultationFee: 1100
-    },
-    {
-      id: 7,
-      name: "Dr. Abdul Karim",
-      speciality: "General physician",
-      image: "/api/placeholder/400/400",
-      rating: 4.5,
-      experience: "6 years",
-      location: "Government Employees Hospital",
-      phone: "+880 1717-789012",
-      availableSlots: 15,
-      degree: "MBBS",
-      consultationFee: 600
-    },
-    {
-      id: 8,
-      name: "Dr. Ruma Akter",
-      speciality: "Dermatologist",
-      image: "/api/placeholder/400/400",
-      rating: 4.7,
-      experience: "9 years",
-      location: "Apollo Hospitals Dhaka",
-      phone: "+880 1718-890123",
-      availableSlots: 11,
-      degree: "MBBS, CCD",
-      consultationFee: 1000
-    },
-    {
-      id: 9,
-      name: "Dr. Marium Begum",
-      speciality: "Gynecologist",
-      image: "/api/placeholder/400/400",
-      rating: 4.8,
-      experience: "13 years",
-      location: "Dhaka Medical College Hospital",
-      phone: "+880 1719-901234",
-      availableSlots: 5,
-      degree: "MBBS, MS (Gynae)",
-      consultationFee: 950
-    },
-    {
-      id: 10,
-      name: "Dr. Habibur Rahman",
-      speciality: "Pediatrician",
-      image: "/api/placeholder/400/400",
-      rating: 4.6,
-      experience: "11 years",
-      location: "Evercare Hospital Dhaka",
-      phone: "+880 1720-012345",
-      availableSlots: 9,
-      degree: "MBBS, FCPS (Paediatrics)",
-      consultationFee: 850
-    },
-    {
-      id: 11,
-      name: "Dr. Khalilur Rahman",
-      speciality: "Neurologist",
-      image: "/api/placeholder/400/400",
-      rating: 4.9,
-      experience: "20 years",
-      location: "Bangabandhu Sheikh Mujib Medical University",
-      phone: "+880 1721-123456",
-      availableSlots: 3,
-      degree: "MBBS, MD (Neurology)",
-      consultationFee: 1800
-    },
-    {
-      id: 12,
-      name: "Dr. Nasreen Sultana",
-      speciality: "Gastroenterologist",
-      image: "/api/placeholder/400/400",
-      rating: 4.7,
-      experience: "16 years",
-      location: "Popular Medical College Hospital",
-      phone: "+880 1722-234567",
-      availableSlots: 8,
-      degree: "MBBS, FCPS (Gastroenterology)",
-      consultationFee: 1300
-    }
-  ];
+  const { backendUrl } = useContext(AppContext);
+  
+  // State management
+  const [doctors, setDoctors] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [filters, setFilters] = useState({
+    specialty: '',
+    sortBy: 'name',
+    availableOnly: false,
+    priceRange: 'all'
+  });
+  const [viewMode, setViewMode] = useState('grid');
+  const [showMobileFilters, setShowMobileFilters] = useState(false);
 
   const specialtyFilters = [
     { name: 'All Doctors', specialty: '', icon: '👨‍⚕️', color: 'from-gray-500 to-gray-600', bgColor: 'bg-gray-50' },
@@ -171,19 +29,31 @@ const Doctors = () => {
     { name: 'Digestive Health', specialty: 'Gastroenterologist', icon: '🫃', color: 'from-orange-500 to-orange-600', bgColor: 'bg-orange-50' }
   ];
 
-  // ============ STATE MANAGEMENT ============
-  const [filters, setFilters] = useState({
-    specialty: '',
-    sortBy: 'name',
-    availableOnly: false,
-    priceRange: 'all'
-  });
-  const [showMobileFilters, setShowMobileFilters] = useState(false);
-  const [viewMode, setViewMode] = useState('grid'); // 'grid' or 'list'
+  // Fetch doctors from API
+  useEffect(() => {
+    fetchDoctors();
+  }, []);
 
-  // ============ COMPUTED VALUES ============
+  const fetchDoctors = async () => {
+    try {
+      setLoading(true);
+      const response = await axios.get(`${backendUrl}/api/doctors`);
+      if (response.data.success) {
+        setDoctors(response.data.doctors);
+      } else {
+        toast.error('Failed to fetch doctors');
+      }
+    } catch (error) {
+      console.error('Error fetching doctors:', error);
+      toast.error('Failed to fetch doctors');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Computed values - filtered and sorted doctors
   const filteredAndSortedDoctors = useMemo(() => {
-    let result = [...doctorsData];
+    let result = [...doctors];
 
     // Filter by specialty
     if (filters.specialty) {
@@ -192,7 +62,11 @@ const Doctors = () => {
 
     // Filter by availability
     if (filters.availableOnly) {
-      result = result.filter(doctor => doctor.availableSlots > 0);
+      result = result.filter(doctor => 
+        doctor.isActive && 
+        doctor.availability?.status === 'available' && 
+        doctor.availableSlots > 0
+      );
     }
 
     // Filter by price range
@@ -221,33 +95,38 @@ const Doctors = () => {
           return a.consultationFee - b.consultationFee;
         case 'price-high':
           return b.consultationFee - a.consultationFee;
-        case 'slots':
-          return b.availableSlots - a.availableSlots;
+        case 'availability':
+          // Available doctors first
+          const aAvailable = a.isActive && a.availability?.status === 'available' && a.availableSlots > 0;
+          const bAvailable = b.isActive && b.availability?.status === 'available' && b.availableSlots > 0;
+          if (aAvailable && !bAvailable) return -1;
+          if (!aAvailable && bAvailable) return 1;
+          return a.name.localeCompare(b.name);
         default:
           return a.name.localeCompare(b.name);
       }
     });
 
     return result;
-  }, [filters, doctorsData]);
+  }, [filters, doctors]);
 
   const statistics = useMemo(() => ({
     total: filteredAndSortedDoctors.length,
+    available: filteredAndSortedDoctors.filter(doc => 
+      doc.isActive && doc.availability?.status === 'available' && doc.availableSlots > 0
+    ).length,
     avgRating: filteredAndSortedDoctors.length > 0 
       ? (filteredAndSortedDoctors.reduce((acc, doc) => acc + doc.rating, 0) / filteredAndSortedDoctors.length).toFixed(1)
       : '0.0',
-    totalSlots: filteredAndSortedDoctors.reduce((acc, doc) => acc + doc.availableSlots, 0),
-    avgFee: filteredAndSortedDoctors.length > 0
-      ? Math.round(filteredAndSortedDoctors.reduce((acc, doc) => acc + doc.consultationFee, 0) / filteredAndSortedDoctors.length)
-      : 0
+    totalSlots: filteredAndSortedDoctors.reduce((acc, doc) => acc + (doc.availableSlots || 0), 0)
   }), [filteredAndSortedDoctors]);
 
   const getSpecialtyCount = (specialty) => {
-    if (!specialty) return doctorsData.length;
-    return doctorsData.filter(doc => doc.speciality === specialty).length;
+    if (!specialty) return doctors.length;
+    return doctors.filter(doc => doc.speciality === specialty).length;
   };
 
-  // ============ EVENT HANDLERS ============
+  // Event handlers
   const updateFilter = (key, value) => {
     setFilters(prev => ({ ...prev, [key]: value }));
   };
@@ -262,76 +141,19 @@ const Doctors = () => {
   };
 
   const handleBookAppointment = (doctor) => {
-    alert(`🎉 Booking appointment with ${doctor.name}!\n\n📋 Details:\n• Specialty: ${doctor.speciality}\n• Fee: ৳${doctor.consultationFee}\n• Phone: ${doctor.phone}\n• Available Slots: ${doctor.availableSlots}`);
+    const isBookable = doctor.isActive && 
+                      doctor.availability?.status === 'available' && 
+                      doctor.availableSlots > 0;
+    
+    if (!isBookable) {
+      toast.warn('This doctor is currently unavailable for appointments');
+      return;
+    }
+    
+    toast.success(`🎉 Booking appointment with ${doctor.name}!\n\n📋 Details:\n• Specialty: ${doctor.speciality}\n• Fee: ৳${doctor.consultationFee}\n• Phone: ${doctor.phone}\n• Available Slots: ${doctor.availableSlots}`);
   };
 
-  // ============ COMPONENTS ============
-  const DoctorCard = ({ doctor }) => (
-    <div className={`bg-white rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-500 overflow-hidden border border-gray-100 hover:border-blue-200 transform hover:-translate-y-2 ${viewMode === 'list' ? 'flex' : ''}`}>
-      <div className={`${viewMode === 'list' ? 'w-32 h-32' : 'w-full h-48'} relative overflow-hidden`}>
-        <img 
-          src={doctor.image} 
-          alt={doctor.name}
-          className="w-full h-full object-cover"
-          onError={(e) => {
-            e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(doctor.name)}&background=3b82f6&color=ffffff&size=400`;
-          }}
-        />
-        <div className="absolute top-2 right-2 bg-green-500 text-white text-xs px-2 py-1 rounded-full font-medium animate-pulse">
-          {doctor.availableSlots > 0 ? 'Available' : 'Busy'}
-        </div>
-        <div className="absolute bottom-2 left-2 bg-black bg-opacity-60 text-white text-xs px-2 py-1 rounded-full">
-          ⭐ {doctor.rating}
-        </div>
-      </div>
-      
-      <div className="p-6 flex-1">
-        <div className="mb-3">
-          <h3 className="font-bold text-xl text-gray-900 mb-1">{doctor.name}</h3>
-          <p className="text-blue-600 font-semibold text-sm mb-1">{doctor.speciality}</p>
-          <p className="text-xs text-gray-500">{doctor.degree}</p>
-        </div>
-        
-        <div className="space-y-2 text-sm text-gray-600 mb-4">
-          <div className="flex items-center gap-2">
-            <span>🏥</span>
-            <span className="truncate">{doctor.location}</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <span>📞</span>
-            <span>{doctor.phone}</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <span>💼</span>
-            <span>{doctor.experience} experience</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <span>💰</span>
-            <span className="font-semibold text-green-600">৳{doctor.consultationFee}</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <span>🕒</span>
-            <span className={`font-semibold ${doctor.availableSlots > 0 ? 'text-green-600' : 'text-red-500'}`}>
-              {doctor.availableSlots} slots available
-            </span>
-          </div>
-        </div>
-        
-        <button 
-          onClick={() => handleBookAppointment(doctor)}
-          disabled={doctor.availableSlots === 0}
-          className={`w-full py-3 px-4 rounded-xl font-semibold transition-all duration-300 transform hover:scale-105 ${
-            doctor.availableSlots > 0
-              ? 'bg-gradient-to-r from-blue-600 to-blue-700 text-white hover:from-blue-700 hover:to-blue-800 shadow-lg hover:shadow-xl'
-              : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-          }`}
-        >
-          {doctor.availableSlots > 0 ? '📅 Book Appointment' : '❌ Not Available'}
-        </button>
-      </div>
-    </div>
-  );
-
+  // Components
   const SpecialtyFilter = ({ filter }) => (
     <button
       onClick={() => updateFilter('specialty', filter.specialty)}
@@ -363,7 +185,15 @@ const Doctors = () => {
     </div>
   );
 
-  // ============ RENDER ============
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
+
+  // Render
   return (
     <div className="bg-gradient-to-br from-blue-50 via-white to-indigo-50 min-h-screen">
       <div className="max-w-7xl mx-auto px-4 py-8">
@@ -379,9 +209,9 @@ const Doctors = () => {
         {/* Statistics Cards */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
           <StatsCard icon="👨‍⚕️" label="Total Doctors" value={statistics.total} color="text-blue-600" />
+          <StatsCard icon="✅" label="Available Now" value={statistics.available} color="text-green-600" />
           <StatsCard icon="⭐" label="Avg Rating" value={statistics.avgRating} color="text-yellow-600" />
-          <StatsCard icon="🕒" label="Available Slots" value={statistics.totalSlots} color="text-green-600" />
-          <StatsCard icon="💰" label="Avg Fee" value={`৳${statistics.avgFee}`} color="text-purple-600" />
+          <StatsCard icon="🕒" label="Total Slots" value={statistics.totalSlots} color="text-purple-600" />
         </div>
 
         {/* Quick Specialty Filters */}
@@ -416,7 +246,7 @@ const Doctors = () => {
                   <option value="experience">Most Experience</option>
                   <option value="price-low">Price: Low to High</option>
                   <option value="price-high">Price: High to Low</option>
-                  <option value="slots">Most Available</option>
+                  <option value="availability">Available First</option>
                 </select>
               </div>
 
@@ -425,10 +255,10 @@ const Doctors = () => {
                 <label className="block text-sm font-semibold text-gray-700 mb-3">Price Range</label>
                 <div className="space-y-2">
                   {[
-                    { value: 'all', label: 'All Prices', count: doctorsData.length },
-                    { value: 'low', label: 'Under ৳800', count: doctorsData.filter(d => d.consultationFee <= 800).length },
-                    { value: 'medium', label: '৳800 - ৳1200', count: doctorsData.filter(d => d.consultationFee > 800 && d.consultationFee <= 1200).length },
-                    { value: 'high', label: 'Above ৳1200', count: doctorsData.filter(d => d.consultationFee > 1200).length }
+                    { value: 'all', label: 'All Prices', count: doctors.length },
+                    { value: 'low', label: 'Under ৳800', count: doctors.filter(d => d.consultationFee <= 800).length },
+                    { value: 'medium', label: '৳800 - ৳1200', count: doctors.filter(d => d.consultationFee > 800 && d.consultationFee <= 1200).length },
+                    { value: 'high', label: 'Above ৳1200', count: doctors.filter(d => d.consultationFee > 1200).length }
                   ].map((option) => (
                     <label key={option.value} className="flex items-center gap-2 cursor-pointer p-2 rounded-lg hover:bg-gray-50">
                       <input
@@ -501,7 +331,12 @@ const Doctors = () => {
                   {filters.specialty ? `${filters.specialty}s` : 'All Doctors'}
                 </h2>
                 <p className="text-gray-600">
-                  Showing {filteredAndSortedDoctors.length} of {doctorsData.length} doctors
+                  Showing {filteredAndSortedDoctors.length} of {doctors.length} doctors
+                  {filters.availableOnly && (
+                    <span className="ml-2 text-green-600 font-medium">
+                      • Available only
+                    </span>
+                  )}
                 </p>
               </div>
             </div>
@@ -514,7 +349,11 @@ const Doctors = () => {
                   : 'grid-cols-1'
               }`}>
                 {filteredAndSortedDoctors.map((doctor) => (
-                  <DoctorCard key={doctor.id} doctor={doctor} />
+                  <DoctorCard 
+                    key={doctor._id} 
+                    doctor={doctor} 
+                    onBookAppointment={handleBookAppointment}
+                  />
                 ))}
               </div>
             ) : (
