@@ -36,6 +36,13 @@ const Navbar = () => {
           <li className='py-1'>CONTACT</li>
           <hr className='border-none outline-none h-0.5 bg-primary w-3/5 m-auto hidden' />
         </NavLink>
+        {/* Admin Panel Link - only show if user is logged in */}
+        {token && (
+          <NavLink to='/admin' >
+            <li className='py-1 text-red-600'>ADMIN</li>
+            <hr className='border-none outline-none h-0.5 bg-red-600 w-3/5 m-auto hidden' />
+          </NavLink>
+        )}
       </ul>
 
       <div className='flex items-center gap-4 '>
@@ -48,6 +55,7 @@ const Navbar = () => {
                 <div className='min-w-48 bg-gray-50 rounded flex flex-col gap-4 p-4'>
                   <p onClick={() => navigate('/my-profile')} className='hover:text-black cursor-pointer'>My Profile</p>
                   <p onClick={() => navigate('/my-appointments')} className='hover:text-black cursor-pointer'>My Appointments</p>
+                  <p onClick={() => navigate('/admin')} className='hover:text-black cursor-pointer text-red-600'>Admin Panel</p>
                   <p onClick={logout} className='hover:text-black cursor-pointer'>Logout</p>
                 </div>
               </div>
@@ -72,6 +80,9 @@ const Navbar = () => {
             <NavLink onClick={() => setShowMenu(false)} to='/doctors' ><p className='px-4 py-2 rounded full inline-block'>ALL DOCTORS</p></NavLink>
             <NavLink onClick={() => setShowMenu(false)} to='/about' ><p className='px-4 py-2 rounded full inline-block'>ABOUT</p></NavLink>
             <NavLink onClick={() => setShowMenu(false)} to='/contact' ><p className='px-4 py-2 rounded full inline-block'>CONTACT</p></NavLink>
+            {token && (
+              <NavLink onClick={() => setShowMenu(false)} to='/admin' ><p className='px-4 py-2 rounded full inline-block text-red-600'>ADMIN PANEL</p></NavLink>
+            )}
           </ul>
         </div>
       </div>

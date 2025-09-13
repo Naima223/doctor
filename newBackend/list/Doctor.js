@@ -1,32 +1,60 @@
-// newBackend/list/Doctor.js - Updated with availability status
-import mongoose from "mongoose";
+import mongoose from 'mongoose';
 
 const doctorSchema = new mongoose.Schema({
-  name: { type: String, required: true },
-  email: {
+  name: {
     type: String,
+    required: true,
+    trim: true
+  },
+  email: { 
+    type: String, 
     required: true,
     unique: true,
     lowercase: true,
-    trim: true,
-    validate: {
-      validator: function(v) {
-        return /^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/.test(v);
-      },
-      message: 'Please enter a valid email address'
-    }
+    trim: true
   },
-  speciality: { type: String, required: true },
-  image: String,
-  rating: Number,
-  experience: String,
-  location: String,
-  phone: String,
-  availableSlots: Number,
-  degree: String,
-  consultationFee: Number,
+  speciality: {
+    type: String,
+    required: true
+  },
+  image: {
+    type: String,
+    default: ''
+  },
+  rating: {
+    type: Number,
+    default: 4.0,
+    min: 0,
+    max: 5
+  },
+  experience: {
+    type: String,
+    required: true
+  },
+  location: {
+    type: String,
+    required: true
+  },
+  phone: {
+    type: String,
+    required: true
+  },
+  availableSlots: {
+    type: Number,
+    default: 0,
+    min: 0
+  },
+  degree: {
+    type: String,
+    required: true
+  },
+  consultationFee: {
+    type: Number,
+    required: true,
+    min: 0
+  },
   
-  // New availability management fields
+  // Availability management fields
   isActive: { 
     type: Boolean, 
     default: true 
@@ -50,12 +78,12 @@ const doctorSchema = new mongoose.Schema({
       default: Date.now
     },
     updatedBy: {
-      type: String, // Admin who made the change
+      type: String,
       default: 'system'
     }
   },
   
-  // Admin notes for internal use
+  // Admin notes
   adminNotes: [{
     note: String,
     createdAt: { type: Date, default: Date.now },
@@ -65,26 +93,16 @@ const doctorSchema = new mongoose.Schema({
   timestamps: true 
 });
 
-// Virtual field to check if doctor is currently available
-doctorSchema.virtual('isCurrentlyAvailable').get(function() {
-  return this.isActive && this.availability.status === 'available';
+// Virtual for avatar URL
+doctorSchema.virtual('avatarUrl').get(function() {
+  if (this.image && this.image !== '/api/placeholder/400/400') return this.image;
+  return `https://ui-avatars.com/api/?name=${encodeURIComponent(this.name)}&background=3b82f6&color=ffffff&size=400`;
 });
 
-// Method to update availability
-doctorSchema.methods.updateAvailability = function(status, reason = '', expectedBackTime = null, updatedBy = 'admin') {
-  this.availability.status = status;
-  this.availability.reason = reason;
-  this.availability.expectedBackTime = expectedBackTime;
-  this.availability.lastUpdated = new Date();
-  this.availability.updatedBy = updatedBy;
-  
-  // If setting to unavailable, reset available slots to 0
-  if (status !== 'available') {
-    this.availableSlots = 0;
-  }
-  
-  return this.save();
-};
+// Index for better search performance
+doctorSchema.index({ speciality: 1 });
+doctorSchema.index({ 'availability.status': 1 });
+doctorSchema.index({ isActive: 1 });
 
 const Doctor = mongoose.model('Doctor', doctorSchema);
 

@@ -1,12 +1,11 @@
-// middleware/auth.js
-import jwt from "jsonwebtoken";
-import User from "../list/User.js";
+import jwt from 'jsonwebtoken';
+import User from '../models/User.js';
 
-// Middleware to verify JWT token
-const authenticateToken = async (req, res, next) => {
+// Required authentication middleware
+export const authenticateToken = async (req, res, next) => {
   try {
-    // Get token from header
-    const token = req.header('Authorization')?.replace('Bearer ', '') || req.header('token');
+    const authHeader = req.header('Authorization');
+    const token = authHeader && authHeader.replace('Bearer ', '');
     
     if (!token) {
       return res.status(401).json({
@@ -15,10 +14,7 @@ const authenticateToken = async (req, res, next) => {
       });
     }
 
-    // Verify token
     const decoded = jwt.verify(token, process.env.JWT_SECRET || "your_jwt_secret_key");
-    
-    // Get user from database
     const user = await User.findById(decoded.id).select('-password');
     
     if (!user) {
@@ -28,50 +24,34 @@ const authenticateToken = async (req, res, next) => {
       });
     }
 
-    // Add user to request object
     req.user = user;
     next();
-    
   } catch (error) {
-    console.error("Authentication error:", error);
-    
-    if (error.name === 'JsonWebTokenError') {
-      return res.status(401).json({
-        success: false,
-        message: "Invalid token."
-      });
-    }
-    
-    if (error.name === 'TokenExpiredError') {
-      return res.status(401).json({
-        success: false,
-        message: "Token expired. Please login again."
-      });
-    }
-    
-    return res.status(500).json({
+    return res.status(401).json({
       success: false,
-      message: "Server error during authentication."
+      message: "Invalid token."
     });
   }
 };
 
-// Middleware for optional authentication (user might or might not be logged in)
-const optionalAuth = async (req, res, next) => {
+// Optional authentication middleware (doesn't block if no token)
+export const optionalAuth = async (req, res, next) => {
   try {
-    const token = req.header('Authorization')?.replace('Bearer ', '') || req.header('token');
+    const authHeader = req.header('Authorization');
+    const token = authHeader && authHeader.replace('Bearer ', '');
     
     if (token) {
       const decoded = jwt.verify(token, process.env.JWT_SECRET || "your_jwt_secret_key");
       const user = await User.findById(decoded.id).select('-password');
-      req.user = user;
+      
+      if (user) {
+        req.user = user;
+      }
     }
     
     next();
   } catch (error) {
-    // Continue without authentication for optional routes
+    // If token is invalid, continue without user
     next();
   }
 };
-
-export { authenticateToken, optionalAuth };

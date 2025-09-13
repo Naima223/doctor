@@ -19,6 +19,11 @@
     "react-router-dom": "^6.30.1",
     "react-toastify": "^10.0.6"
   },
+  
+  "dependencies": {
+    "react-icons": "^4.11.0"
+  },
+
   "devDependencies": {
     "@types/react": "^18.3.3",
     "@types/react-dom": "^18.3.0",
