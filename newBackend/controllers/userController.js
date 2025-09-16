@@ -1,8 +1,8 @@
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
-import User from '../models/User.js';
+import User from '../list/User.js';
 
-// Register new user
+// Register new user (Patient)
 export const registerUser = async (req, res) => {
   try {
     const { name, email, password } = req.body;
@@ -11,6 +11,14 @@ export const registerUser = async (req, res) => {
       return res.status(400).json({
         success: false,
         message: "Please provide all required fields"
+      });
+    }
+
+    // Validate password length
+    if (password.length < 6) {
+      return res.status(400).json({
+        success: false,
+        message: "Password must be at least 6 characters long"
       });
     }
 
@@ -24,22 +32,27 @@ export const registerUser = async (req, res) => {
     }
 
     // Hash password
-    const saltRounds = 10;
+    const saltRounds = 12;
     const hashedPassword = await bcrypt.hash(password, saltRounds);
 
     // Create new user
     const newUser = new User({
       name,
       email,
-      password: hashedPassword
+      password: hashedPassword,
+      role: 'patient'
     });
 
     const user = await newUser.save();
 
-    // Generate JWT token
+    // Generate JWT token for patient
     const token = jwt.sign(
-      { id: user._id },
-      process.env.JWT_SECRET || "your_jwt_secret_key",
+      { 
+        id: user._id, 
+        role: 'patient',
+        email: user.email 
+      },
+      process.env.JWT_SECRET,
       { expiresIn: "7d" }
     );
 
@@ -50,12 +63,22 @@ export const registerUser = async (req, res) => {
       user: {
         id: user._id,
         name: user.name,
-        email: user.email
+        email: user.email,
+        role: user.role,
+        image: user.avatarUrl
       }
     });
 
   } catch (error) {
-    console.error("Registration error:", error);
+    console.error("Patient registration error:", error);
+    
+    if (error.code === 11000) {
+      return res.status(400).json({
+        success: false,
+        message: "Email already exists"
+      });
+    }
+    
     res.status(500).json({
       success: false,
       message: "Error creating account. Please try again."
@@ -63,7 +86,7 @@ export const registerUser = async (req, res) => {
   }
 };
 
-// Login user
+// Login user (Patient)
 export const loginUser = async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -75,8 +98,8 @@ export const loginUser = async (req, res) => {
       });
     }
 
-    // Find user
-    const user = await User.findOne({ email });
+    // Find user and verify it's a patient
+    const user = await User.findOne({ email, role: 'patient' });
     if (!user) {
       return res.status(401).json({
         success: false,
@@ -93,10 +116,14 @@ export const loginUser = async (req, res) => {
       });
     }
 
-    // Generate JWT token
+    // Generate JWT token for patient
     const token = jwt.sign(
-      { id: user._id },
-      process.env.JWT_SECRET || "your_jwt_secret_key",
+      { 
+        id: user._id, 
+        role: 'patient',
+        email: user.email 
+      },
+      process.env.JWT_SECRET,
       { expiresIn: "7d" }
     );
 
@@ -107,12 +134,18 @@ export const loginUser = async (req, res) => {
       user: {
         id: user._id,
         name: user.name,
-        email: user.email
+        email: user.email,
+        role: user.role,
+        phone: user.phone || '',
+        address: user.address || '',
+        gender: user.gender || '',
+        dob: user.dob || '',
+        image: user.avatarUrl
       }
     });
 
   } catch (error) {
-    console.error("Login error:", error);
+    console.error("Patient login error:", error);
     res.status(500).json({
       success: false,
       message: "Error logging in. Please try again."
@@ -120,12 +153,12 @@ export const loginUser = async (req, res) => {
   }
 };
 
-// Get user profile
+// Get user profile (Patient)
 export const getUserProfile = async (req, res) => {
   try {
-    const user = await User.findById(req.user._id).select('-password');
+    const user = await User.findById(req.user.id).select('-password');
     
-    if (!user) {
+    if (!user || user.role !== 'patient') {
       return res.status(404).json({
         success: false,
         message: "User not found"
@@ -138,11 +171,12 @@ export const getUserProfile = async (req, res) => {
         id: user._id,
         name: user.name,
         email: user.email,
+        role: user.role,
         phone: user.phone || '',
         address: user.address || '',
         gender: user.gender || '',
         dob: user.dob || '',
-        image: user.image || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name)}&background=3b82f6&color=ffffff&size=400`
+        image: user.avatarUrl
       }
     });
 
@@ -155,13 +189,13 @@ export const getUserProfile = async (req, res) => {
   }
 };
 
-// Update user profile
+// Update user profile (Patient)
 export const updateUserProfile = async (req, res) => {
   try {
-    const { name, phone, address, gender, dob } = req.body;
+    const { name, phone, address, gender, dob, image } = req.body;
     
-    const user = await User.findById(req.user._id);
-    if (!user) {
+    const user = await User.findById(req.user.id);
+    if (!user || user.role !== 'patient') {
       return res.status(404).json({
         success: false,
         message: "User not found"
@@ -169,11 +203,12 @@ export const updateUserProfile = async (req, res) => {
     }
 
     // Update user fields
-    if (name) user.name = name;
-    if (phone) user.phone = phone;
-    if (address) user.address = address;
-    if (gender) user.gender = gender;
-    if (dob) user.dob = dob;
+    if (name && name.trim()) user.name = name.trim();
+    if (phone !== undefined) user.phone = phone;
+    if (address !== undefined) user.address = address;
+    if (gender !== undefined) user.gender = gender;
+    if (dob !== undefined) user.dob = dob ? new Date(dob) : null;
+    if (image !== undefined) user.image = image;
 
     await user.save();
 
@@ -184,11 +219,12 @@ export const updateUserProfile = async (req, res) => {
         id: user._id,
         name: user.name,
         email: user.email,
+        role: user.role,
         phone: user.phone || '',
         address: user.address || '',
         gender: user.gender || '',
         dob: user.dob || '',
-        image: user.image || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name)}&background=3b82f6&color=ffffff&size=400`
+        image: user.avatarUrl
       }
     });
 

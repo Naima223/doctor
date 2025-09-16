@@ -1,7 +1,7 @@
 import jwt from 'jsonwebtoken';
-import User from '../models/User.js';
+import User from '../list/User.js';
 
-// Required authentication middleware
+// Required authentication middleware for patients
 export const authenticateToken = async (req, res, next) => {
   try {
     const authHeader = req.header('Authorization');
@@ -14,10 +14,19 @@ export const authenticateToken = async (req, res, next) => {
       });
     }
 
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || "your_jwt_secret_key");
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    
+    // Verify it's a patient token
+    if (decoded.role !== 'patient') {
+      return res.status(403).json({
+        success: false,
+        message: "Access denied. Patient access required."
+      });
+    }
+    
     const user = await User.findById(decoded.id).select('-password');
     
-    if (!user) {
+    if (!user || user.role !== 'patient') {
       return res.status(401).json({
         success: false,
         message: "Invalid token. User not found."
@@ -27,9 +36,25 @@ export const authenticateToken = async (req, res, next) => {
     req.user = user;
     next();
   } catch (error) {
-    return res.status(401).json({
+    console.error("Patient authentication error:", error);
+    
+    if (error.name === 'JsonWebTokenError') {
+      return res.status(401).json({
+        success: false,
+        message: "Invalid token."
+      });
+    }
+    
+    if (error.name === 'TokenExpiredError') {
+      return res.status(401).json({
+        success: false,
+        message: "Token expired. Please login again."
+      });
+    }
+    
+    return res.status(500).json({
       success: false,
-      message: "Invalid token."
+      message: "Server error during authentication."
     });
   }
 };
@@ -41,17 +66,22 @@ export const optionalAuth = async (req, res, next) => {
     const token = authHeader && authHeader.replace('Bearer ', '');
     
     if (token) {
-      const decoded = jwt.verify(token, process.env.JWT_SECRET || "your_jwt_secret_key");
-      const user = await User.findById(decoded.id).select('-password');
+      const decoded = jwt.verify(token, process.env.JWT_SECRET);
       
-      if (user) {
-        req.user = user;
+      // Only attach user if it's a patient token
+      if (decoded.role === 'patient') {
+        const user = await User.findById(decoded.id).select('-password');
+        
+        if (user && user.role === 'patient') {
+          req.user = user;
+        }
       }
     }
     
     next();
   } catch (error) {
     // If token is invalid, continue without user
+    console.log("Optional auth error (ignored):", error.message);
     next();
   }
 };

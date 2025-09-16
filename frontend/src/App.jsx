@@ -32,14 +32,24 @@ const App = () => {
       <Navbar />
       
       <Routes>
+        {/* Public Routes */}
         <Route path='/' element={<Home />} />
         <Route path='/doctors' element={<Doctors />} />
-        <Route path='/login' element={<Login />} />
-        <Route path='/contact' element={<Contact />} />
         <Route path='/about' element={<About />} />
+        <Route path='/contact' element={<Contact />} />
+        
+        {/* Patient Authentication Routes */}
+        <Route path='/login' element={<Login />} />
+        
+        {/* Admin Authentication Routes */}
+        
+        {/* Patient Protected Routes */}
         <Route path='/my-profile' element={<MyProfile />} />
         <Route path='/my-appointments' element={<MyAppointments />} />
+        
+        {/* Admin Protected Routes */}
         <Route path='/admin' element={<AdminPanel />} />
+        <Route path='/admin/dashboard' element={<AdminPanel />} />
       </Routes>
       
       <Footer />
