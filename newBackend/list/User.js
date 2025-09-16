@@ -38,6 +38,10 @@ const userSchema = new mongoose.Schema({
   image: {
     type: String,
     default: ''
+  },
+  role: {
+    type: String,
+    default: 'patient'  // To distinguish from admin
   }
 }, {
   timestamps: true
