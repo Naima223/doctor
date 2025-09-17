@@ -6,7 +6,8 @@ import {
     updateDoctorAvailability,
     addDoctor,
     updateDoctor,
-    deleteDoctor
+    deleteDoctor,
+    getAdminProfile  // Add this
 } from "../controllers/adminController.js";
 import { 
     updateDoctorAvailability as updateAvailability,
@@ -19,8 +20,11 @@ import { authenticateAdmin, checkPermission } from "../middleware/adminAuth.js";
 
 const router = express.Router();
 
-// Admin Authentication Routes (Public)
+// Direct Admin Login (Public)
 router.post("/login", adminLogin);
+
+// Admin Profile Route (Protected)
+router.get("/profile", authenticateAdmin, getAdminProfile);
 
 // Admin Dashboard Routes (Protected)
 router.get("/dashboard/stats", authenticateAdmin, getDashboardStats);

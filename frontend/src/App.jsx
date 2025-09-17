@@ -9,6 +9,7 @@ import Contact from './pages/Contact'
 import MyProfile from './pages/MyProfile'
 import MyAppointments from './pages/MyAppointments'
 import AdminPanel from './pages/AdminPanel'
+import AdminAccess from './pages/AdminAccess'
 import Footer from './components/Footer'
 import { ToastContainer } from 'react-toastify'
 import 'react-toastify/dist/ReactToastify.css'
@@ -41,15 +42,17 @@ const App = () => {
         {/* Patient Authentication Routes */}
         <Route path='/login' element={<Login />} />
         
-        {/* Admin Authentication Routes */}
+        {/* Admin Access Routes */}
+        <Route path='/admin' element={<AdminAccess />} />
+        <Route path='/admin/login' element={<AdminAccess />} />
         
         {/* Patient Protected Routes */}
         <Route path='/my-profile' element={<MyProfile />} />
         <Route path='/my-appointments' element={<MyAppointments />} />
         
         {/* Admin Protected Routes */}
-        <Route path='/admin' element={<AdminPanel />} />
         <Route path='/admin/dashboard' element={<AdminPanel />} />
+        <Route path='/admin/panel' element={<AdminPanel />} />
       </Routes>
       
       <Footer />
