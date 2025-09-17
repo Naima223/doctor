@@ -5,6 +5,7 @@ import mongoose from 'mongoose';
 import connectDB from './doctordb/connect.js';
 import userRoutes from './routes/userRoutes.js';
 import adminRoutes from './routes/adminRoutes.js';
+import { initializeAdmins } from './controllers/adminController.js';
 
 // Load environment variables
 dotenv.config();
@@ -19,8 +20,25 @@ app.use(cors({
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 
-// Database connection
-connectDB();
+// Database connection and admin initialization
+const initializeApp = async () => {
+  try {
+    // Connect to database
+    await connectDB();
+    
+    // Initialize hardcoded admin accounts
+    console.log('🔐 Initializing admin accounts...');
+    await initializeAdmins();
+    console.log('✅ Admin accounts initialized');
+    
+  } catch (error) {
+    console.error('❌ App initialization failed:', error);
+    process.exit(1);
+  }
+};
+
+// Initialize the app
+initializeApp();
 
 // Health check endpoint
 app.get('/', (req, res) => {
@@ -28,8 +46,20 @@ app.get('/', (req, res) => {
     success: true,
     message: 'QuickDoc Server v2.0 is running!',
     version: '2.0',
-    port: process.env.PORT || 5000,
-    features: ['Separate Admin/Patient Login', 'Enhanced Security', 'Role-based Access', 'Email Verification'],
+    port: process.env.PORT || 5001,
+    features: [
+      'Hardcoded Admin Emails', 
+      'Complete Admin Panel', 
+      'Doctor Management', 
+      'User Management',
+      'Analytics Dashboard',
+      'Role-based Access Control'
+    ],
+    adminEmails: [
+      'fairuzanadi.048@gmail.com (Super Admin)',
+      'fairuz.cse.20230104121@aust.edu (Admin)',
+      'anadi@gmail.com (New Admin)'
+    ],
     endpoints: {
       patient: {
         base: '/api/user',
@@ -38,14 +68,18 @@ app.get('/', (req, res) => {
       admin: {
         base: '/api/admin', 
         routes: [
-          'POST /login', 
-          'POST /request-access',
-          'POST /verify-code',
-          'POST /resend-code',
-          'POST /login-verified',
-          'GET /dashboard/stats', 
+          'POST /login',
+          'GET /profile', 
+          'GET /dashboard/stats',
+          'GET /analytics',
           'GET /doctors', 
-          'PUT /doctors/:id/availability'
+          'POST /doctors',
+          'PUT /doctors/:id',
+          'DELETE /doctors/:id',
+          'PUT /doctors/:id/availability',
+          'PUT /doctors/:id/toggle-status',
+          'POST /doctors/:id/notes',
+          'GET /users'
         ]
       }
     }
@@ -57,7 +91,26 @@ app.get('/api/test', (req, res) => {
     success: true, 
     message: 'API is working!',
     timestamp: new Date().toISOString(),
-    port: process.env.PORT || 5000,
+    port: process.env.PORT || 5001,
+    hardcodedAdmins: [
+      {
+        email: 'fairuzanadi.048@gmail.com',
+        password: 'fairuzanadi',
+        role: 'super_admin'
+      },
+      {
+        email: 'fairuz.cse.20230104121@aust.edu',
+        password: 'fairuzanadifairuzanadi',
+        role: 'admin'
+      },
+        {
+    name: "New Admin Name",
+    email: "anadi@gmail.com ",
+    password: "newpassword",
+    role: "admin"
+  }
+
+    ],
     routes: {
       patient: [
         'POST /api/user/register - Register new patient',
@@ -67,16 +120,18 @@ app.get('/api/test', (req, res) => {
         'GET /api/user/doctors - Get all doctors (public)'
       ],
       admin: [
-        'POST /api/admin/request-access - Request email verification',
-        'POST /api/admin/verify-code - Verify email code',
-        'POST /api/admin/resend-code - Resend verification code',
-        'POST /api/admin/login-verified - Admin login with verification',
-        'POST /api/admin/login - Legacy admin login',
+        'POST /api/admin/login - Direct admin login',
+        'GET /api/admin/profile - Get admin profile (admin auth)',
         'GET /api/admin/dashboard/stats - Dashboard statistics (admin auth)',
+        'GET /api/admin/analytics - System analytics (admin auth)',
         'GET /api/admin/doctors - Get all doctors for admin (admin auth)',
         'POST /api/admin/doctors - Add new doctor (admin auth)',
+        'PUT /api/admin/doctors/:id - Update doctor (admin auth)',
+        'DELETE /api/admin/doctors/:id - Remove doctor (admin auth)',
         'PUT /api/admin/doctors/:id/availability - Update doctor availability (admin auth)',
-        'PUT /api/admin/doctors/:id/toggle-status - Toggle doctor status (admin auth)'
+        'PUT /api/admin/doctors/:id/toggle-status - Toggle doctor status (admin auth)',
+        'POST /api/admin/doctors/:id/notes - Add doctor note (admin auth)',
+        'GET /api/admin/users - Get all users (admin auth)'
       ]
     }
   });
@@ -90,33 +145,7 @@ app.use('/api/admin', adminRoutes);  // Admin routes
 app.get('/api/doctors', (req, res) => {
   res.redirect('/api/user/doctors');
 });
-// In your main server file, update the API routes documentation:
-app.get('/api/test', (req, res) => {
-  res.json({ 
-    success: true, 
-    message: 'API is working!',
-    timestamp: new Date().toISOString(),
-    port: process.env.PORT || 5000,
-    routes: {
-      patient: [
-        'POST /api/user/register - Register new patient',
-        'POST /api/user/login - Patient login',
-        'GET /api/user/profile - Get patient profile (auth required)',
-        'PUT /api/user/profile - Update patient profile (auth required)', 
-        'GET /api/user/doctors - Get all doctors (public)'
-      ],
-      admin: [
-        'POST /api/admin/login - Direct admin login',
-        'GET /api/admin/profile - Get admin profile (admin auth)',
-        'GET /api/admin/dashboard/stats - Dashboard statistics (admin auth)',
-        'GET /api/admin/doctors - Get all doctors for admin (admin auth)',
-        'POST /api/admin/doctors - Add new doctor (admin auth)',
-        'PUT /api/admin/doctors/:id/availability - Update doctor availability (admin auth)',
-        'PUT /api/admin/doctors/:id/toggle-status - Toggle doctor status (admin auth)'
-      ]
-    }
-  });
-});
+
 // 404 handler
 app.use('*', (req, res) => {
   res.status(404).json({
@@ -197,7 +226,7 @@ process.on('SIGINT', async () => {
 });
 
 // Enhanced port configuration with fallback
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 5001;
 
 // Start server with error handling
 const startServer = () => {
@@ -223,25 +252,25 @@ const startServer = () => {
    👨‍⚕️ Doctors: GET /api/user/doctors
 
 🔐 ADMIN ENDPOINTS:  
-   📧 Request Access: POST /api/admin/request-access
-   🔍 Verify Code: POST /api/admin/verify-code
-   🔄 Resend Code: POST /api/admin/resend-code
-   🔑 Login Verified: POST /api/admin/login-verified
-   🔑 Legacy Login: POST /api/admin/login
+   🔑 Login: POST /api/admin/login
+   👤 Profile: GET /api/admin/profile
    📊 Dashboard: GET /api/admin/dashboard/stats
-   👨‍⚕️ Doctors: GET/POST /api/admin/doctors
+   📈 Analytics: GET /api/admin/analytics
+   👨‍⚕️ Manage Doctors: GET/POST/PUT/DELETE /api/admin/doctors
    ⚙️ Availability: PUT /api/admin/doctors/:id/availability
+   👥 Manage Users: GET /api/admin/users
 
 📊 Database: ${process.env.MONGO_URI ? 'MongoDB Atlas' : 'Local MongoDB'}
 🌍 Environment: ${process.env.NODE_ENV || 'development'}
 
-📋 SETUP INSTRUCTIONS:
-   1. Run: node scripts/setupAdmin.js (to create admin accounts)
-   2. Run: node scripts/addSampledata.js (to add sample doctors)
-   
-🔑 DEFAULT ADMIN LOGIN:
-   Email: fairuzanadi.048@gmail.com
-   Password: fairuzanadi
+🔑 HARDCODED ADMIN LOGINS:
+   📧 Email: fairuzanadi.048@gmail.com
+   🔐 Password: fairuzanadi
+   👑 Role: Super Admin
+
+   📧 Email: fairuz.cse.20230104121@aust.edu  
+   🔐 Password: fairuzanadifairuzanadi
+   👑 Role: Admin
    
 ⚠️  Server started on port ${nextPort} instead of ${PORT}
    Update your frontend to use: http://localhost:${nextPort}
@@ -266,26 +295,27 @@ const startServer = () => {
    👨‍⚕️ Doctors: GET /api/user/doctors
 
 🔐 ADMIN ENDPOINTS:  
-   📧 Request Access: POST /api/admin/request-access
-   🔍 Verify Code: POST /api/admin/verify-code
-   🔄 Resend Code: POST /api/admin/resend-code
-   🔑 Login Verified: POST /api/admin/login-verified
-   🔑 Legacy Login: POST /api/admin/login
+   🔑 Login: POST /api/admin/login
+   👤 Profile: GET /api/admin/profile
    📊 Dashboard: GET /api/admin/dashboard/stats
-   👨‍⚕️ Doctors: GET/POST /api/admin/doctors
+   📈 Analytics: GET /api/admin/analytics
+   👨‍⚕️ Manage Doctors: GET/POST/PUT/DELETE /api/admin/doctors
    ⚙️ Availability: PUT /api/admin/doctors/:id/availability
+   👥 Manage Users: GET /api/admin/users
 
 📊 Database: ${process.env.MONGO_URI ? 'MongoDB Atlas' : 'Local MongoDB'}
 🌍 Environment: ${process.env.NODE_ENV || 'development'}
 
-📋 SETUP INSTRUCTIONS:
-   1. Run: node scripts/setupAdmin.js (to create admin accounts)
-   2. Run: node scripts/addSampledata.js (to add sample doctors)
+🔑 HARDCODED ADMIN LOGINS:
+   📧 Email: fairuzanadi.048@gmail.com
+   🔐 Password: fairuzanadi
+   👑 Role: Super Admin
+
+   📧 Email: fairuz.cse.20230104121@aust.edu  
+   🔐 Password: fairuzanadifairuzanadi
+   👑 Role: Admin
    
-🔑 DEFAULT ADMIN LOGIN:
-Email: fairuzanadi.048@gmail.com
-   Password: fairuzanadi
-   
+✅ Admin accounts automatically initialized!
     `);
   });
 

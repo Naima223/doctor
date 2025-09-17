@@ -3,11 +3,12 @@ import {
     adminLogin,
     getDashboardStats,
     getAllDoctorsAdmin,
-    updateDoctorAvailability,
+    getAllUsersAdmin,
     addDoctor,
     updateDoctor,
     deleteDoctor,
-    getAdminProfile  // Add this
+    getAdminProfile,
+    getSystemAnalytics
 } from "../controllers/adminController.js";
 import { 
     updateDoctorAvailability as updateAvailability,
@@ -20,7 +21,7 @@ import { authenticateAdmin, checkPermission } from "../middleware/adminAuth.js";
 
 const router = express.Router();
 
-// Direct Admin Login (Public)
+// Admin Authentication Routes (Public)
 router.post("/login", adminLogin);
 
 // Admin Profile Route (Protected)
@@ -28,8 +29,8 @@ router.get("/profile", authenticateAdmin, getAdminProfile);
 
 // Admin Dashboard Routes (Protected)
 router.get("/dashboard/stats", authenticateAdmin, getDashboardStats);
-
-// Admin Doctor Management Routes (Protected)
+router.get("/analytics", authenticateAdmin, getSystemAnalytics);
+// Doctor Management Routes (Protected)
 router.get("/doctors", authenticateAdmin, getAllDoctorsAdmin);
 router.post("/doctors", authenticateAdmin, checkPermission('manage_doctors'), addDoctor);
 router.post("/doctors/bulk", authenticateAdmin, checkPermission('manage_doctors'), bulkInsertDoctors);
@@ -40,5 +41,8 @@ router.delete("/doctors/:doctorId", authenticateAdmin, checkPermission('manage_d
 router.put("/doctors/:doctorId/availability", authenticateAdmin, updateAvailability);
 router.put("/doctors/:doctorId/toggle-status", authenticateAdmin, toggleDoctorStatus);
 router.post("/doctors/:doctorId/notes", authenticateAdmin, addDoctorNote);
+
+// User Management Routes (Protected)
+router.get("/users", authenticateAdmin, checkPermission('manage_users'), getAllUsersAdmin);
 
 export default router;

@@ -39,8 +39,8 @@ const adminSchema = new mongoose.Schema({
   timestamps: true
 });
 
-// Add index for faster email lookups
-adminSchema.index({ email: 1 });
+// Remove this line - the unique: true already creates an index
+// adminSchema.index({ email: 1 });
 
 const Admin = mongoose.model('Admin', adminSchema);
 

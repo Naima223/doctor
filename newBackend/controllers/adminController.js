@@ -2,16 +2,58 @@ import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import Admin from "../list/Admin.js";
 import Doctor from "../list/Doctor.js";
+import User from "../list/User.js";
 
-// Allowed admin emails (move to environment variables in production)
-const allowedAdminEmails = [
-  process.env.ADMIN_EMAIL_1 || 'fairuzanadi.048@gmail.com',
-    process.env.ADMIN_EMAIL_2 || 'fairuz.cse.20230104121@aust.edu',
-
-  // Add more emails from environment variables as needed
+// Hardcoded admin emails with their details
+const HARDCODED_ADMINS = [
+  {
+    name: "Fairuz Anadi",
+    email: "fairuzanadi.048@gmail.com",
+    password: "fairuzanadi", // This will be hashed
+    role: "super_admin"
+  },
+  {
+    name: "Fairuz AUST",
+    email: "fairuz.cse.20230104121@aust.edu",
+    password: "fairuzanadifairuzanadi", // This will be hashed
+    role: "admin"
+  },
+  {
+    name: "New Admin Name",
+    email: "anadi@gmail.com",
+    password: "newpassword",
+    role: "admin"
+  }
 ];
 
-// Admin Login with email validation
+// Initialize hardcoded admins in database
+const initializeAdmins = async () => {
+  try {
+    for (const adminData of HARDCODED_ADMINS) {
+      const existingAdmin = await Admin.findOne({ email: adminData.email });
+      
+      if (!existingAdmin) {
+        const hashedPassword = await bcrypt.hash(adminData.password, 12);
+        
+        const newAdmin = new Admin({
+          name: adminData.name,
+          email: adminData.email.toLowerCase(),
+          password: hashedPassword,
+          role: adminData.role,
+          permissions: ['manage_doctors', 'manage_users', 'view_analytics', 'manage_appointments'],
+          isActive: true
+        });
+        
+        await newAdmin.save();
+        console.log(`✅ Admin initialized: ${adminData.email}`);
+      }
+    }
+  } catch (error) {
+    console.error("Error initializing admins:", error);
+  }
+};
+
+// Admin Login
 const adminLogin = async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -23,8 +65,12 @@ const adminLogin = async (req, res) => {
       });
     }
 
-    // Check if email is in allowed list
-    if (!allowedAdminEmails.includes(email.toLowerCase())) {
+    // Check if email is in hardcoded list
+    const hardcodedAdmin = HARDCODED_ADMINS.find(admin => 
+      admin.email.toLowerCase() === email.toLowerCase()
+    );
+
+    if (!hardcodedAdmin) {
       return res.status(403).json({
         success: false,
         message: "Access denied. Unauthorized email address."
@@ -86,29 +132,63 @@ const adminLogin = async (req, res) => {
 // Get Admin Dashboard Stats
 const getDashboardStats = async (req, res) => {
   try {
+    // Doctor stats
     const totalDoctors = await Doctor.countDocuments();
-    const availableDoctors = await Doctor.countDocuments({ isAvailable: true, status: 'active' });
+    const availableDoctors = await Doctor.countDocuments({ 
+      isActive: true, 
+      'availability.status': 'available' 
+    });
     const unavailableDoctors = await Doctor.countDocuments({ 
       $or: [
-        { isAvailable: false },
-        { status: { $in: ['temporarily_closed', 'on_leave'] } }
+        { 'availability.status': { $in: ['temporarily_unavailable', 'on_leave'] } },
+        { isActive: false }
       ]
     });
-    const busyDoctors = await Doctor.countDocuments({ status: 'busy' });
+    const busyDoctors = await Doctor.countDocuments({ 'availability.status': 'busy' });
+
+    // User stats
+    const totalUsers = await User.countDocuments({ role: 'patient' });
+    const newUsersToday = await User.countDocuments({
+      role: 'patient',
+      createdAt: { 
+        $gte: new Date(new Date().setHours(0, 0, 0, 0)) 
+      }
+    });
+
+    // Available slots
+    const totalSlots = await Doctor.aggregate([
+      { $match: { isActive: true, 'availability.status': 'available' } },
+      { $group: { _id: null, totalSlots: { $sum: '$availableSlots' } } }
+    ]);
 
     const doctorsBySpecialty = await Doctor.aggregate([
       { $group: { _id: "$speciality", count: { $sum: 1 } } },
       { $sort: { count: -1 } }
     ]);
 
+    // Recent activity (last 24 hours)
+    const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000);
+    const recentlyUpdatedDoctors = await Doctor.countDocuments({
+      'availability.lastUpdated': { $gte: yesterday }
+    });
+
     res.json({
       success: true,
       stats: {
-        totalDoctors,
-        availableDoctors,
-        unavailableDoctors,
-        busyDoctors,
-        doctorsBySpecialty
+        doctors: {
+          total: totalDoctors,
+          available: availableDoctors,
+          unavailable: unavailableDoctors,
+          busy: busyDoctors,
+          totalSlots: totalSlots[0]?.totalSlots || 0,
+          recentlyUpdated: recentlyUpdatedDoctors
+        },
+        users: {
+          total: totalUsers,
+          newToday: newUsersToday
+        },
+        doctorsBySpecialty,
+        lastUpdated: new Date()
       }
     });
 
@@ -140,79 +220,65 @@ const getAllDoctorsAdmin = async (req, res) => {
   }
 };
 
-// Update Doctor Availability
-const updateDoctorAvailability = async (req, res) => {
+// Get All Users for Admin
+const getAllUsersAdmin = async (req, res) => {
   try {
-    const { doctorId } = req.params;
-    const { 
-      isAvailable, 
-      status, 
-      unavailableReason, 
-      estimatedAvailableAt,
-      availableSlots 
-    } = req.body;
-
-    const doctor = await Doctor.findById(doctorId);
-    if (!doctor) {
-      return res.status(404).json({
-        success: false,
-        message: "Doctor not found"
-      });
+    const { page = 1, limit = 20, search = '' } = req.query;
+    
+    let query = { role: 'patient' };
+    
+    if (search) {
+      query = {
+        ...query,
+        $or: [
+          { name: { $regex: search, $options: 'i' } },
+          { email: { $regex: search, $options: 'i' } }
+        ]
+      };
     }
 
-    // Update fields
-    if (typeof isAvailable !== 'undefined') {
-      doctor.isAvailable = isAvailable;
-    }
-    
-    if (status) {
-      doctor.status = status;
-    }
-    
-    if (unavailableReason !== undefined) {
-      doctor.unavailableReason = unavailableReason;
-    }
-    
-    if (estimatedAvailableAt !== undefined) {
-      doctor.estimatedAvailableAt = estimatedAvailableAt ? new Date(estimatedAvailableAt) : null;
-    }
-    
-    if (typeof availableSlots !== 'undefined') {
-      doctor.availableSlots = availableSlots;
-    }
+    const users = await User.find(query)
+      .select('-password')
+      .sort({ createdAt: -1 })
+      .limit(limit * 1)
+      .skip((page - 1) * limit);
 
-    // Set unavailable since timestamp if becoming unavailable
-    if (!isAvailable && doctor.isAvailable !== false) {
-      doctor.unavailableSince = new Date();
-    }
-
-    await doctor.save();
+    const total = await User.countDocuments(query);
 
     res.json({
       success: true,
-      message: "Doctor availability updated successfully",
-      doctor
+      users,
+      pagination: {
+        current: parseInt(page),
+        pages: Math.ceil(total / limit),
+        total,
+        hasNext: page < Math.ceil(total / limit),
+        hasPrev: page > 1
+      }
     });
 
   } catch (error) {
-    console.error("Update availability error:", error);
+    console.error("Get users error:", error);
     res.status(500).json({
       success: false,
-      message: "Error updating doctor availability"
+      message: "Error fetching users"
     });
   }
 };
 
-// Add New Doctor (Admin only)
+// Add New Doctor
 const addDoctor = async (req, res) => {
   try {
     const doctorData = req.body;
     
     // Validate required fields
-    if (!doctorData.name || !doctorData.email || !doctorData.speciality) {
+    const requiredFields = ['name', 'email', 'speciality', 'experience', 'location', 'phone', 'degree', 'consultationFee'];
+    const missingFields = requiredFields.filter(field => !doctorData[field]);
+    
+    if (missingFields.length > 0) {
       return res.status(400).json({
         success: false,
-        message: "Name, email, and speciality are required"
+        message: `Missing required fields: ${missingFields.join(', ')}`
       });
     }
     
@@ -225,10 +291,22 @@ const addDoctor = async (req, res) => {
       });
     }
 
-    // Normalize email
-    doctorData.email = doctorData.email.toLowerCase();
+    // Create doctor with default values
+    const doctor = new Doctor({
+      ...doctorData,
+      email: doctorData.email.toLowerCase(),
+      availableSlots: doctorData.availableSlots || 5,
+      rating: doctorData.rating || 4.0,
+      isActive: true,
+      availability: {
+        status: 'available',
+        reason: '',
+        expectedBackTime: null,
+        lastUpdated: new Date(),
+        updatedBy: req.admin?.name || 'Admin'
+      }
+    });
 
-    const doctor = new Doctor(doctorData);
     await doctor.save();
 
     res.status(201).json({
@@ -316,7 +394,7 @@ const updateDoctor = async (req, res) => {
   }
 };
 
-// Delete Doctor (Soft delete recommended)
+// Delete Doctor (Soft delete)
 const deleteDoctor = async (req, res) => {
   try {
     const { doctorId } = req.params;
@@ -329,21 +407,26 @@ const deleteDoctor = async (req, res) => {
       });
     }
 
-    // Soft delete - set as inactive instead of actually deleting
+    // Soft delete - set as inactive
     doctor.isActive = false;
-    doctor.deletedAt = new Date();
+    doctor.availability.status = 'temporarily_unavailable';
+    doctor.availability.reason = 'Removed by admin';
+    doctor.availability.lastUpdated = new Date();
+    doctor.availability.updatedBy = req.admin?.name || 'Admin';
+    doctor.availableSlots = 0;
+    
     await doctor.save();
 
     res.json({
       success: true,
-      message: "Doctor deactivated successfully"
+      message: "Doctor removed successfully"
     });
 
   } catch (error) {
     console.error("Delete doctor error:", error);
     res.status(500).json({
       success: false,
-      message: "Error deactivating doctor"
+      message: "Error removing doctor"
     });
   }
 };
@@ -382,38 +465,105 @@ const getAdminProfile = async (req, res) => {
   }
 };
 
-// Logout admin (invalidate token - client-side mainly)
-const adminLogout = async (req, res) => {
+// Get System Analytics
+const getSystemAnalytics = async (req, res) => {
   try {
-    // Update last logout time
-    if (req.admin && req.admin.id) {
-      await Admin.findByIdAndUpdate(req.admin.id, {
-        lastLogout: new Date()
-      });
+    const { period = 'week' } = req.query; // week, month, year
+    
+    let startDate;
+    switch (period) {
+      case 'month':
+        startDate = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+        break;
+      case 'year':
+        startDate = new Date(Date.now() - 365 * 24 * 60 * 60 * 1000);
+        break;
+      default: // week
+        startDate = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
     }
+
+    // User registrations over time
+    const userRegistrations = await User.aggregate([
+      {
+        $match: {
+          role: 'patient',
+          createdAt: { $gte: startDate }
+        }
+      },
+      {
+        $group: {
+          _id: {
+            $dateToString: {
+              format: "%Y-%m-%d",
+              date: "$createdAt"
+            }
+          },
+          count: { $sum: 1 }
+        }
+      },
+      { $sort: { "_id": 1 } }
+    ]);
+
+    // Doctor status distribution
+    const doctorStatusDistribution = await Doctor.aggregate([
+      {
+        $group: {
+          _id: "$availability.status",
+          count: { $sum: 1 }
+        }
+      }
+    ]);
+
+    // Most popular specialties
+    const popularSpecialties = await Doctor.aggregate([
+      {
+        $group: {
+          _id: "$speciality",
+          count: { $sum: 1 },
+          avgRating: { $avg: "$rating" },
+          totalSlots: { $sum: "$availableSlots" }
+        }
+      },
+      { $sort: { count: -1 } },
+      { $limit: 10 }
+    ]);
 
     res.json({
       success: true,
-      message: "Admin logged out successfully"
+      analytics: {
+        period,
+        userRegistrations,
+        doctorStatusDistribution,
+        popularSpecialties,
+        summary: {
+          totalDoctors: await Doctor.countDocuments(),
+          totalUsers: await User.countDocuments({ role: 'patient' }),
+          activeDoctors: await Doctor.countDocuments({ isActive: true }),
+          avgDoctorRating: await Doctor.aggregate([
+            { $group: { _id: null, avg: { $avg: "$rating" } } }
+          ]).then(result => result[0]?.avg.toFixed(1) || '0.0')
+        }
+      }
     });
 
   } catch (error) {
-    console.error("Admin logout error:", error);
+    console.error("Get analytics error:", error);
     res.status(500).json({
       success: false,
-      message: "Error during logout"
+      message: "Error fetching analytics"
     });
   }
 };
 
 export {
+  initializeAdmins,
   adminLogin,
   getDashboardStats,
   getAllDoctorsAdmin,
-  updateDoctorAvailability,
+  getAllUsersAdmin,
   addDoctor,
   updateDoctor,
   deleteDoctor,
   getAdminProfile,
-  adminLogout
+  getSystemAnalytics
 };
