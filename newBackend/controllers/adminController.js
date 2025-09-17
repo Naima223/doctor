@@ -3,7 +3,15 @@ import jwt from "jsonwebtoken";
 import Admin from "../list/Admin.js";
 import Doctor from "../list/Doctor.js";
 
-// Admin Login
+// Allowed admin emails (move to environment variables in production)
+const allowedAdminEmails = [
+  process.env.ADMIN_EMAIL_1 || 'fairuzanadi.048@gmail.com',
+    process.env.ADMIN_EMAIL_2 || 'fairuz.cse.20230104121@aust.edu',
+
+  // Add more emails from environment variables as needed
+];
+
+// Admin Login with email validation
 const adminLogin = async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -15,7 +23,15 @@ const adminLogin = async (req, res) => {
       });
     }
 
-    const admin = await Admin.findOne({ email, isActive: true });
+    // Check if email is in allowed list
+    if (!allowedAdminEmails.includes(email.toLowerCase())) {
+      return res.status(403).json({
+        success: false,
+        message: "Access denied. Unauthorized email address."
+      });
+    }
+
+    const admin = await Admin.findOne({ email: email.toLowerCase(), isActive: true });
     if (!admin) {
       return res.status(401).json({
         success: false,
@@ -36,7 +52,11 @@ const adminLogin = async (req, res) => {
     await admin.save();
 
     const token = jwt.sign(
-      { id: admin._id, role: 'admin' },
+      { 
+        id: admin._id, 
+        role: admin.role,
+        email: admin.email 
+      },
       process.env.JWT_SECRET,
       { expiresIn: "24h" }
     );
@@ -183,19 +203,30 @@ const updateDoctorAvailability = async (req, res) => {
   }
 };
 
-// Add New Doctor
+// Add New Doctor (Admin only)
 const addDoctor = async (req, res) => {
   try {
     const doctorData = req.body;
     
+    // Validate required fields
+    if (!doctorData.name || !doctorData.email || !doctorData.speciality) {
+      return res.status(400).json({
+        success: false,
+        message: "Name, email, and speciality are required"
+      });
+    }
+    
     // Check if doctor with email already exists
-    const existingDoctor = await Doctor.findOne({ email: doctorData.email });
+    const existingDoctor = await Doctor.findOne({ email: doctorData.email.toLowerCase() });
     if (existingDoctor) {
       return res.status(400).json({
         success: false,
         message: "Doctor with this email already exists"
       });
     }
+
+    // Normalize email
+    doctorData.email = doctorData.email.toLowerCase();
 
     const doctor = new Doctor(doctorData);
     await doctor.save();
@@ -208,6 +239,15 @@ const addDoctor = async (req, res) => {
 
   } catch (error) {
     console.error("Add doctor error:", error);
+    
+    if (error.name === 'ValidationError') {
+      return res.status(400).json({
+        success: false,
+        message: "Validation error",
+        errors: Object.values(error.errors).map(err => err.message)
+      });
+    }
+    
     res.status(500).json({
       success: false,
       message: "Error adding doctor"
@@ -220,6 +260,24 @@ const updateDoctor = async (req, res) => {
   try {
     const { doctorId } = req.params;
     const updateData = req.body;
+
+    // Normalize email if provided
+    if (updateData.email) {
+      updateData.email = updateData.email.toLowerCase();
+      
+      // Check if email is already taken by another doctor
+      const existingDoctor = await Doctor.findOne({ 
+        email: updateData.email, 
+        _id: { $ne: doctorId } 
+      });
+      
+      if (existingDoctor) {
+        return res.status(400).json({
+          success: false,
+          message: "Email already in use by another doctor"
+        });
+      }
+    }
 
     const doctor = await Doctor.findByIdAndUpdate(
       doctorId,
@@ -242,6 +300,15 @@ const updateDoctor = async (req, res) => {
 
   } catch (error) {
     console.error("Update doctor error:", error);
+    
+    if (error.name === 'ValidationError') {
+      return res.status(400).json({
+        success: false,
+        message: "Validation error",
+        errors: Object.values(error.errors).map(err => err.message)
+      });
+    }
+    
     res.status(500).json({
       success: false,
       message: "Error updating doctor"
@@ -249,12 +316,12 @@ const updateDoctor = async (req, res) => {
   }
 };
 
-// Delete Doctor
+// Delete Doctor (Soft delete recommended)
 const deleteDoctor = async (req, res) => {
   try {
     const { doctorId } = req.params;
 
-    const doctor = await Doctor.findByIdAndDelete(doctorId);
+    const doctor = await Doctor.findById(doctorId);
     if (!doctor) {
       return res.status(404).json({
         success: false,
@@ -262,16 +329,79 @@ const deleteDoctor = async (req, res) => {
       });
     }
 
+    // Soft delete - set as inactive instead of actually deleting
+    doctor.isActive = false;
+    doctor.deletedAt = new Date();
+    await doctor.save();
+
     res.json({
       success: true,
-      message: "Doctor deleted successfully"
+      message: "Doctor deactivated successfully"
     });
 
   } catch (error) {
     console.error("Delete doctor error:", error);
     res.status(500).json({
       success: false,
-      message: "Error deleting doctor"
+      message: "Error deactivating doctor"
+    });
+  }
+};
+
+// Get Admin Profile
+const getAdminProfile = async (req, res) => {
+  try {
+    const admin = await Admin.findById(req.admin.id).select('-password');
+    
+    if (!admin) {
+      return res.status(404).json({
+        success: false,
+        message: "Admin not found"
+      });
+    }
+
+    res.json({
+      success: true,
+      admin: {
+        id: admin._id,
+        name: admin.name,
+        email: admin.email,
+        role: admin.role,
+        permissions: admin.permissions,
+        lastLogin: admin.lastLogin,
+        createdAt: admin.createdAt
+      }
+    });
+
+  } catch (error) {
+    console.error("Get admin profile error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Error fetching admin profile"
+    });
+  }
+};
+
+// Logout admin (invalidate token - client-side mainly)
+const adminLogout = async (req, res) => {
+  try {
+    // Update last logout time
+    if (req.admin && req.admin.id) {
+      await Admin.findByIdAndUpdate(req.admin.id, {
+        lastLogout: new Date()
+      });
+    }
+
+    res.json({
+      success: true,
+      message: "Admin logged out successfully"
+    });
+
+  } catch (error) {
+    console.error("Admin logout error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Error during logout"
     });
   }
 };
@@ -283,5 +413,7 @@ export {
   updateDoctorAvailability,
   addDoctor,
   updateDoctor,
-  deleteDoctor
+  deleteDoctor,
+  getAdminProfile,
+  adminLogout
 };
