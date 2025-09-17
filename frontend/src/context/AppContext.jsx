@@ -1,279 +1,259 @@
 import { createContext, useEffect, useState } from "react";
 import { toast } from "react-toastify";
-import axios from 'axios'
+import axios from "axios";
+import { useAuth } from "./AuthProvider";
 
-export const AppContext = createContext()
+export const AppContext = createContext();
 
 const AppContextProvider = (props) => {
+  const currencySymbol = "₹";
 
-    const currencySymbol = '₹'
-    // Fixed to use VITE_BACKEND_URL instead of REACT_APP_BACKEND_URL
-    const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000'
+  // ✅ Base URL should already include /api to avoid double `/api`
+  const backendUrl =
+    import.meta.env.VITE_BACKEND_URL || "http://localhost:5000/api";
 
-    const [doctors, setDoctors] = useState([])
-    const [token, setToken] = useState(localStorage.getItem('token') ? localStorage.getItem('token') : '')
-    const [userData, setUserData] = useState(false)
+  
+  const { token, user: userData, setUser, login, register, logout } = useAuth();
 
-    // Getting User Profile using API
-    const loadUserProfileData = async () => {
-        try {
-            // Use Authorization header instead of token header
-            const { data } = await axios.get(backendUrl + '/api/user/profile', { 
-                headers: { 
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json'
-                } 
-            })
+  const [doctors, setDoctors] = useState([]);
 
-            if (data.success) {
-                setUserData(data.user) // Changed from data.userData to data.user (based on your backend response)
-            } else {
-                toast.error(data.message)
-            }
+  
+  
+  const loadUserProfileData = async () => {
+    try {
+      const { data } = await axios.get(`${backendUrl}/user/profile`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      });
 
-        } catch (error) {
-            console.log(error)
-            // Handle 401 errors (token expired/invalid)
-            if (error.response?.status === 401) {
-                logout()
-                toast.error('Session expired. Please login again.')
-            } else {
-                toast.error(error.response?.data?.message || error.message)
-            }
+      if (data.success) {
+        setUser(data.user); // use AuthProvider's setter
+      } else {
+        toast.error(data.message);
+      }
+    } catch (error) {
+      // Handle 401 (expired/invalid)
+      if (error?.response?.status === 401) {
+        logout();
+        toast.error("Session expired. Please login again.");
+      } else {
+        toast.error(error?.response?.data?.message || error.message);
+      }
+    }
+  };
+
+  // PUT profile
+  const updateUserProfile = async (profileData) => {
+    try {
+      const { data } = await axios.put(
+        `${backendUrl}/user/profile`,
+        profileData,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
         }
+      );
+
+      if (data.success) {
+        setUser(data.user); // keep AuthProvider in sync
+        toast.success("Profile updated successfully!");
+        return { success: true };
+      } else {
+        toast.error(data.message);
+        return { success: false, message: data.message };
+      }
+    } catch (error) {
+      if (error?.response?.status === 401) {
+        logout();
+        toast.error("Session expired. Please login again.");
+      } else {
+        const msg = error?.response?.data?.message || error.message;
+        toast.error(msg);
+      }
+      return {
+        success: false,
+        message: error?.response?.data?.message || error.message,
+      };
     }
+  };
 
-    // Login API function
-    const loginUser = async (email, password) => {
-        try {
-            const { data } = await axios.post(backendUrl + '/api/user/login', { email, password })
+ 
 
-            if (data.success) {
-                localStorage.setItem('token', data.token)
-                setToken(data.token)
-                toast.success('Login successful!')
-                return { success: true }
-            } else {
-                toast.error(data.message)
-                return { success: false, message: data.message }
-            }
-        } catch (error) {
-            console.log(error)
-            const errorMessage = error.response?.data?.message || error.message
-            toast.error(errorMessage)
-            return { success: false, message: errorMessage }
+  const loginUser = async (email, password) => {
+    try {
+      const res = await login({ email, password }); // AuthProvider.login
+      toast.success("Login successful!");
+      return { success: true, ...res };
+    } catch (error) {
+      const msg = error?.response?.data?.message || error.message;
+      toast.error(msg);
+      return { success: false, message: msg };
+    }
+  };
+
+  const registerUser = async (name, email, password) => {
+    try {
+      const res = await register({ name, email, password }); // AuthProvider.register
+      toast.success("Account created successfully!");
+      return { success: true, ...res };
+    } catch (error) {
+      const msg = error?.response?.data?.message || error.message;
+      toast.error(msg);
+      return { success: false, message: msg };
+    }
+  };
+
+ 
+
+  const getDoctorsData = async () => {
+    try {
+      const headers = token
+        ? {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          }
+        : { "Content-Type": "application/json" };
+
+      const { data } = await axios.get(`${backendUrl}/doctors`, { headers });
+
+      if (data.success) {
+        setDoctors(data.doctors);
+      } else {
+        toast.error(data.message);
+      }
+    } catch (error) {
+      toast.error(error?.response?.data?.message || error.message);
+    }
+  };
+
+  const updateDoctorAvailability = async (doctorId, availabilityData) => {
+    try {
+      const { data } = await axios.put(
+        `${backendUrl}/admin/doctors/${doctorId}/availability`,
+        availabilityData,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
         }
+      );
+
+      if (data.success) {
+        toast.success("Doctor availability updated successfully!");
+        getDoctorsData(); // refresh
+        return { success: true };
+      } else {
+        toast.error(data.message);
+        return { success: false, message: data.message };
+      }
+    } catch (error) {
+      const msg = error?.response?.data?.message || error.message;
+      toast.error(msg);
+      return { success: false, message: msg };
     }
+  };
 
-    // Signup API function
-    const registerUser = async (name, email, password) => {
-        try {
-            const { data } = await axios.post(backendUrl + '/api/user/register', { name, email, password })
-
-            if (data.success) {
-                localStorage.setItem('token', data.token)
-                setToken(data.token)
-                toast.success('Account created successfully!')
-                return { success: true }
-            } else {
-                toast.error(data.message)
-                return { success: false, message: data.message }
-            }
-        } catch (error) {
-            console.log(error)
-            const errorMessage = error.response?.data?.message || error.message
-            toast.error(errorMessage)
-            return { success: false, message: errorMessage }
+  const toggleDoctorStatus = async (doctorId) => {
+    try {
+      const { data } = await axios.put(
+        `${backendUrl}/admin/doctors/${doctorId}/toggle-status`,
+        {},
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
         }
+      );
+
+      if (data.success) {
+        toast.success(data.message);
+        getDoctorsData(); // refresh
+        return { success: true };
+      } else {
+        toast.error(data.message);
+        return { success: false, message: data.message };
+      }
+    } catch (error) {
+      const msg = error?.response?.data?.message || error.message;
+      toast.error(msg);
+      return { success: false, message: msg };
     }
+  };
 
-    // Update user profile function
-    const updateUserProfile = async (profileData) => {
-        try {
-            const { data } = await axios.put(backendUrl + '/api/user/profile', profileData, {
-                headers: { 
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json'
-                }
-            })
-
-            if (data.success) {
-                setUserData(data.user)
-                toast.success('Profile updated successfully!')
-                return { success: true }
-            } else {
-                toast.error(data.message)
-                return { success: false, message: data.message }
-            }
-        } catch (error) {
-            console.log(error)
-            if (error.response?.status === 401) {
-                logout()
-                toast.error('Session expired. Please login again.')
-            } else {
-                const errorMessage = error.response?.data?.message || error.message
-                toast.error(errorMessage)
-            }
-            return { success: false, message: error.response?.data?.message || error.message }
+  const addDoctorNote = async (doctorId, note) => {
+    try {
+      const { data } = await axios.post(
+        `${backendUrl}/admin/doctors/${doctorId}/notes`,
+        { note },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
         }
+      );
+
+      if (data.success) {
+        toast.success("Note added successfully!");
+        getDoctorsData(); // refresh
+        return { success: true };
+      } else {
+        toast.error(data.message);
+        return { success: false, message: data.message };
+      }
+    } catch (error) {
+      const msg = error?.response?.data?.message || error.message;
+      toast.error(msg);
+      return { success: false, message: msg };
     }
+  };
 
-    // Get all doctors function
-    const getDoctorsData = async () => {
-        try {
-            const headers = token ? {
-                'Authorization': `Bearer ${token}`,
-                'Content-Type': 'application/json'
-            } : {
-                'Content-Type': 'application/json'
-            }
+  // ---- Legacy helper kept (but simplified) ----
+  const isTokenValid = () => !!token; // AuthProvider handles expiry via 401
 
-            const { data } = await axios.get(backendUrl + '/api/doctors', { headers })
-
-            if (data.success) {
-                setDoctors(data.doctors)
-            } else {
-                toast.error(data.message)
-            }
-        } catch (error) {
-            console.log(error)
-            toast.error(error.response?.data?.message || error.message)
-        }
+  // Auto-load profile on mount if we have a token but no user loaded yet
+  useEffect(() => {
+    if (token && !userData) {
+      loadUserProfileData();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [token]);
 
-    // Admin functions for managing doctors
-    const updateDoctorAvailability = async (doctorId, availabilityData) => {
-        try {
-            const { data } = await axios.put(`${backendUrl}/api/admin/doctors/${doctorId}/availability`, availabilityData, {
-                headers: { 
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json'
-                }
-            })
+  const value = {
+    doctors,
+    setDoctors,
+    currencySymbol,
+    backendUrl,
 
-            if (data.success) {
-                toast.success('Doctor availability updated successfully!')
-                getDoctorsData() // Refresh doctors list
-                return { success: true }
-            } else {
-                toast.error(data.message)
-                return { success: false, message: data.message }
-            }
-        } catch (error) {
-            console.log(error)
-            const errorMessage = error.response?.data?.message || error.message
-            toast.error(errorMessage)
-            return { success: false, message: errorMessage }
-        }
-    }
+    // auth-facing values (aliases)
+    token,
+    userData, // <- from AuthProvider.user
+    setUserData: setUser, // <- alias to AuthProvider.setUser
 
-    const toggleDoctorStatus = async (doctorId) => {
-        try {
-            const { data } = await axios.put(`${backendUrl}/api/admin/doctors/${doctorId}/toggle-status`, {}, {
-                headers: { 
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json'
-                }
-            })
+    // auth actions (wrappers)
+    loginUser,
+    registerUser,
+    updateUserProfile,
+    loadUserProfileData,
+    logout,
+    isTokenValid,
 
-            if (data.success) {
-                toast.success(data.message)
-                getDoctorsData() // Refresh doctors list
-                return { success: true }
-            } else {
-                toast.error(data.message)
-                return { success: false, message: data.message }
-            }
-        } catch (error) {
-            console.log(error)
-            const errorMessage = error.response?.data?.message || error.message
-            toast.error(errorMessage)
-            return { success: false, message: errorMessage }
-        }
-    }
+    // doctors/admin
+    getDoctorsData,
+    updateDoctorAvailability,
+    toggleDoctorStatus,
+    addDoctorNote,
+  };
 
-    const addDoctorNote = async (doctorId, note) => {
-        try {
-            const { data } = await axios.post(`${backendUrl}/api/admin/doctors/${doctorId}/notes`, { note }, {
-                headers: { 
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json'
-                }
-            })
+  return (
+    <AppContext.Provider value={value}>{props.children}</AppContext.Provider>
+  );
+};
 
-            if (data.success) {
-                toast.success('Note added successfully!')
-                getDoctorsData() // Refresh doctors list
-                return { success: true }
-            } else {
-                toast.error(data.message)
-                return { success: false, message: data.message }
-            }
-        } catch (error) {
-            console.log(error)
-            const errorMessage = error.response?.data?.message || error.message
-            toast.error(errorMessage)
-            return { success: false, message: errorMessage }
-        }
-    }
-
-    // Logout function
-    const logout = () => {
-        localStorage.removeItem('token')
-        setToken('')
-        setUserData(false)
-        toast.success('Logged out successfully!')
-    }
-
-    // Check if token is valid (optional - for better UX)
-    const isTokenValid = () => {
-        if (!token) return false
-        
-        try {
-            const payload = JSON.parse(atob(token.split('.')[1]))
-            const currentTime = Date.now() / 1000
-            
-            if (payload.exp < currentTime) {
-                logout()
-                return false
-            }
-            return true
-        } catch (error) {
-            logout()
-            return false
-        }
-    }
-
-    useEffect(() => {
-        if (token && isTokenValid()) {
-            loadUserProfileData()
-        }
-    }, [token])
-
-    const value = {
-        doctors, setDoctors,
-        currencySymbol,
-        backendUrl,
-        token, setToken,
-        userData, setUserData, 
-        loadUserProfileData,
-        loginUser,
-        registerUser,
-        updateUserProfile,
-        getDoctorsData,
-        updateDoctorAvailability,
-        toggleDoctorStatus,
-        addDoctorNote,
-        logout,
-        isTokenValid
-    }
-
-    return (
-        <AppContext.Provider value={value}>
-            {props.children}
-        </AppContext.Provider>
-    )
-
-}
-
-export default AppContextProvider
+export default AppContextProvider;

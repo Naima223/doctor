@@ -1,64 +1,49 @@
-import React, { useContext, useEffect, useState } from 'react'
-import { useNavigate, useLocation } from 'react-router-dom'
-import axios from 'axios'
-import { AppContext } from '../context/AppContext'
-import { toast } from 'react-toastify'
+// src/pages/Login.jsx
+import React, { useEffect, useState } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
+import { toast } from "react-toastify";
+import { useAuth } from "../context/AuthProvider";
 
-const Login = () => {
-  const navigate = useNavigate()
-  const location = useLocation()
-  const { backendUrl, setToken, setUserData } = useContext(AppContext)
+export default function Login() {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const params = new URLSearchParams(location.search);
+  const mode = params.get("mode"); // "login" | "signup" | null
 
-  // URL থেকে mode ধরো
-  const params = new URLSearchParams(location.search)
-  const mode = params.get('mode')
+  const { login, register } = useAuth();
 
-  // ডিফল্ট state হবে Sign Up
-  const [state, setState] = useState('Sign Up')
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
-  const [name, setName] = useState('')
+  // default: Sign Up (tomar previous logic follow kora)
+  const [state, setState] = useState("Sign Up"); // "Login" | "Sign Up"
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [submitting, setSubmitting] = useState(false);
 
-  // URL mode অনুযায়ী state সেট করো
+  // URL mode onujayi toggle
   useEffect(() => {
-    if (mode === 'login') {
-      setState('Login')
-    } else if (mode === 'signup') {
-      setState('Sign Up')
-    }
-  }, [mode])
+    if (mode === "login") setState("Login");
+    else if (mode === "signup") setState("Sign Up");
+  }, [mode]);
 
-  // ফর্ম সাবমিট হ্যান্ডলার
   const onSubmitHandler = async (e) => {
-    e.preventDefault()
+    e.preventDefault();
+    setSubmitting(true);
     try {
-      if (state === 'Login') {
-        const { data } = await axios.post(backendUrl + '/api/user/login', { email, password })
-        if (data.success) {
-          setToken(data.token)
-          setUserData(data.userData)
-          localStorage.setItem('token', data.token)
-          toast.success('Login successful!')
-          navigate('/')
-        } else {
-          toast.error(data.message)
-        }
+      if (state === "Login") {
+        await login(email, password); // AuthProvider handles token+user
+        toast.success("Login successful!");
       } else {
-        const { data } = await axios.post(backendUrl + '/api/user/register', { name, email, password })
-        if (data.success) {
-          setToken(data.token)
-          setUserData(data.userData)
-          localStorage.setItem('token', data.token)
-          toast.success('Account created!')
-          navigate('/')
-        } else {
-          toast.error(data.message)
-        }
+        await register({ name, email, password }); // AuthProvider handles token+user
+        toast.success("Account created!");
       }
-    } catch (error) {
-      toast.error(error.response?.data?.message || 'Something went wrong')
+      // redirect (you can change to "/" if you want)
+      navigate("/my-profile");
+    } catch (err) {
+      toast.error(err?.response?.data?.message || "Something went wrong");
+    } finally {
+      setSubmitting(false);
     }
-  }
+  };
 
   return (
     <div className="flex justify-center items-center min-h-[80vh]">
@@ -68,7 +53,7 @@ const Login = () => {
       >
         <h2 className="text-2xl font-bold text-center mb-6">{state}</h2>
 
-        {state === 'Sign Up' && (
+        {state === "Sign Up" && (
           <input
             type="text"
             placeholder="Name"
@@ -99,17 +84,18 @@ const Login = () => {
 
         <button
           type="submit"
-          className="w-full bg-primary text-white py-3 rounded-lg hover:opacity-90 transition"
+          disabled={submitting}
+          className="w-full bg-primary text-white py-3 rounded-lg hover:opacity-90 transition disabled:opacity-60"
         >
-          {state}
+          {submitting ? "Please wait..." : state}
         </button>
 
         <p className="text-center mt-4">
-          {state === 'Login' ? (
+          {state === "Login" ? (
             <>
-              Don’t have an account?{' '}
+              Don’t have an account?{" "}
               <span
-                onClick={() => navigate('/login?mode=signup')}
+                onClick={() => navigate("/login?mode=signup")}
                 className="text-primary cursor-pointer font-medium"
               >
                 Sign Up
@@ -117,9 +103,9 @@ const Login = () => {
             </>
           ) : (
             <>
-              Already have an account?{' '}
+              Already have an account?{" "}
               <span
-                onClick={() => navigate('/login?mode=login')}
+                onClick={() => navigate("/login?mode=login")}
                 className="text-primary cursor-pointer font-medium"
               >
                 Login
@@ -129,7 +115,5 @@ const Login = () => {
         </p>
       </form>
     </div>
-  )
+  );
 }
-
-export default Login

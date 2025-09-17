@@ -104,6 +104,7 @@ doctorSchema.index({ speciality: 1 });
 doctorSchema.index({ 'availability.status': 1 });
 doctorSchema.index({ isActive: 1 });
 
-const Doctor = mongoose.model('Doctor', doctorSchema);
+//const Doctor = mongoose.model('Doctor', doctorSchema);
 
-export default Doctor;
+//export default Doctor;
+export default mongoose.models.Doctor || mongoose.model('Doctor', doctorSchema);
