@@ -10,6 +10,7 @@ const AppContextProvider = (props) => {
     const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:5001'
 
     const [doctors, setDoctors] = useState([])
+    const [users, setUsers] = useState([])
     
     // Patient authentication state
     const [token, setToken] = useState(localStorage.getItem('token') ? localStorage.getItem('token') : '')
@@ -49,7 +50,7 @@ const AppContextProvider = (props) => {
     const loadUserProfileData = async () => {
         try {
             if (!token || !isPatient()) {
-                return // Skip if no token or not a patient
+                return
             }
 
             const { data } = await axios.get(backendUrl + '/api/user/profile', { 
@@ -67,7 +68,6 @@ const AppContextProvider = (props) => {
 
         } catch (error) {
             console.log('Profile load error:', error)
-            // Handle 401 errors (token expired/invalid)
             if (error.response?.status === 401) {
                 logoutUser()
                 toast.error('Session expired. Please login again.')
@@ -78,43 +78,42 @@ const AppContextProvider = (props) => {
     }
 
     // Getting Admin Profile using API (Admin only)
-   // In AppContext.js, modify this function:
-const loadAdminProfileData = async () => {
-    try {
-        if (!adminToken || !isAdmin()) {
-            return false // Return false instead of just returning
-        }
+    const loadAdminProfileData = async () => {
+        try {
+            if (!adminToken || !isAdmin()) {
+                return false
+            }
 
-        console.log('Loading admin profile with token:', adminToken.substring(0, 20) + '...')
+            console.log('Loading admin profile with token:', adminToken.substring(0, 20) + '...')
 
-        const { data } = await axios.get(backendUrl + '/api/admin/profile', { 
-            headers: { 
-                'Authorization': `Bearer ${adminToken}`,
-                'Content-Type': 'application/json'
-            } 
-        })
+            const { data } = await axios.get(backendUrl + '/api/admin/profile', { 
+                headers: { 
+                    'Authorization': `Bearer ${adminToken}`,
+                    'Content-Type': 'application/json'
+                } 
+            })
 
-        if (data.success) {
-            setAdminData(data.admin)
-            return true
-        } else {
-            console.log('Admin profile load failed:', data.message)
-            toast.error(data.message)
+            if (data.success) {
+                setAdminData(data.admin)
+                return true
+            } else {
+                console.log('Admin profile load failed:', data.message)
+                toast.error(data.message)
+                return false
+            }
+
+        } catch (error) {
+            console.log('Admin profile load error:', error)
+            if (error.response?.status === 401) {
+                logoutAdmin()
+                toast.error('Admin session expired. Please login again.')
+            } else {
+                console.error('Profile load error:', error.response?.data || error.message)
+            }
             return false
         }
-
-    } catch (error) {
-        console.log('Admin profile load error:', error)
-        // Handle 401 errors (token expired/invalid)
-        if (error.response?.status === 401) {
-            logoutAdmin()
-            toast.error('Admin session expired. Please login again.')
-        } else {
-            console.error('Profile load error:', error.response?.data || error.message)
-        }
-        return false
     }
-}
+
     // Patient Login API function
     const loginUser = async (email, password) => {
         try {
@@ -161,39 +160,31 @@ const loadAdminProfileData = async () => {
         }
     }
 
-    // Replace the admin login function in AppContext.js:
-const loginAdmin = async (email, password) => {
-    try {
-        const { data } = await axios.post(backendUrl + '/api/admin/login', { 
-            email, 
-            password
-        })
+    // Admin login function
+    const loginAdmin = async (email, password) => {
+        try {
+            const { data } = await axios.post(backendUrl + '/api/admin/login', { 
+                email, 
+                password
+            })
 
-        if (data.success) {
-            localStorage.setItem('adminToken', data.token)
-            setAdminToken(data.token)
-            setAdminData(data.admin)
-            toast.success('Admin login successful!')
-            return { success: true }
-        } else {
-            toast.error(data.message)
-            return { success: false, message: data.message }
+            if (data.success) {
+                localStorage.setItem('adminToken', data.token)
+                setAdminToken(data.token)
+                setAdminData(data.admin)
+                toast.success('Admin login successful!')
+                return { success: true }
+            } else {
+                toast.error(data.message)
+                return { success: false, message: data.message }
+            }
+        } catch (error) {
+            console.log('Admin login error:', error)
+            const errorMessage = error.response?.data?.message || error.message
+            toast.error(errorMessage)
+            return { success: false, message: errorMessage }
         }
-    } catch (error) {
-        console.log('Admin login error:', error)
-        const errorMessage = error.response?.data?.message || error.message
-        toast.error(errorMessage)
-        return { success: false, message: errorMessage }
     }
-}
-
-// Remove these functions from AppContext:
-// - requestAdminAccess
-// - verifyAdminEmail  
-// - resendAdminCode
-
-// Update the value object to remove verification functions:
-
 
     // Update user profile function (Patient only)
     const updateUserProfile = async (profileData) => {
@@ -231,7 +222,7 @@ const loginAdmin = async (email, password) => {
         }
     }
 
-    // Get all doctors function (works for both patients and admins)
+    // Get all doctors function
     const getDoctorsData = async () => {
         try {
             let headers = { 'Content-Type': 'application/json' }
@@ -259,7 +250,38 @@ const loginAdmin = async (email, password) => {
         }
     }
 
-    // Admin functions for managing doctors
+    // Get all users function (Admin only)
+    const getUsersData = async (page = 1, limit = 20, search = '') => {
+        try {
+            if (!adminToken || !isAdmin()) {
+                toast.error('Admin access required')
+                return { success: false, message: 'Unauthorized' }
+            }
+
+            const { data } = await axios.get(`${backendUrl}/api/admin/users`, {
+                params: { page, limit, search },
+                headers: { 
+                    'Authorization': `Bearer ${adminToken}`,
+                    'Content-Type': 'application/json'
+                }
+            })
+
+            if (data.success) {
+                setUsers(data.users)
+                return { success: true, users: data.users, pagination: data.pagination }
+            } else {
+                toast.error(data.message)
+                return { success: false, message: data.message }
+            }
+        } catch (error) {
+            console.log('Get users error:', error)
+            const errorMessage = error.response?.data?.message || error.message
+            toast.error(errorMessage)
+            return { success: false, message: errorMessage }
+        }
+    }
+
+    // Admin function for updating doctor availability
     const updateDoctorAvailability = async (doctorId, availabilityData) => {
         try {
             if (!adminToken || !isAdmin()) {
@@ -290,6 +312,7 @@ const loginAdmin = async (email, password) => {
         }
     }
 
+    // Admin function for toggling doctor status
     const toggleDoctorStatus = async (doctorId) => {
         try {
             if (!adminToken || !isAdmin()) {
@@ -320,14 +343,15 @@ const loginAdmin = async (email, password) => {
         }
     }
 
-    const addDoctorNote = async (doctorId, note) => {
+    // Admin function for adding new doctor
+    const addNewDoctor = async (doctorData) => {
         try {
             if (!adminToken || !isAdmin()) {
                 toast.error('Admin access required')
                 return { success: false, message: 'Unauthorized' }
             }
 
-            const { data } = await axios.post(`${backendUrl}/api/admin/doctors/${doctorId}/notes`, { note }, {
+            const { data } = await axios.post(`${backendUrl}/api/admin/doctors`, doctorData, {
                 headers: { 
                     'Authorization': `Bearer ${adminToken}`,
                     'Content-Type': 'application/json'
@@ -335,7 +359,69 @@ const loginAdmin = async (email, password) => {
             })
 
             if (data.success) {
-                toast.success('Note added successfully!')
+                toast.success('Doctor added successfully!')
+                getDoctorsData() // Refresh doctors list
+                return { success: true, doctor: data.doctor }
+            } else {
+                toast.error(data.message)
+                return { success: false, message: data.message }
+            }
+        } catch (error) {
+            console.log('Add doctor error:', error)
+            const errorMessage = error.response?.data?.message || error.message
+            toast.error(errorMessage)
+            return { success: false, message: errorMessage }
+        }
+    }
+
+    // Admin function for updating existing doctor
+    const updateExistingDoctor = async (doctorId, doctorData) => {
+        try {
+            if (!adminToken || !isAdmin()) {
+                toast.error('Admin access required')
+                return { success: false, message: 'Unauthorized' }
+            }
+
+            const { data } = await axios.put(`${backendUrl}/api/admin/doctors/${doctorId}`, doctorData, {
+                headers: { 
+                    'Authorization': `Bearer ${adminToken}`,
+                    'Content-Type': 'application/json'
+                }
+            })
+
+            if (data.success) {
+                toast.success('Doctor updated successfully!')
+                getDoctorsData() // Refresh doctors list
+                return { success: true, doctor: data.doctor }
+            } else {
+                toast.error(data.message)
+                return { success: false, message: data.message }
+            }
+        } catch (error) {
+            console.log('Update doctor error:', error)
+            const errorMessage = error.response?.data?.message || error.message
+            toast.error(errorMessage)
+            return { success: false, message: errorMessage }
+        }
+    }
+
+    // Admin function for removing doctor
+    const removeDoctor = async (doctorId) => {
+        try {
+            if (!adminToken || !isAdmin()) {
+                toast.error('Admin access required')
+                return { success: false, message: 'Unauthorized' }
+            }
+
+            const { data } = await axios.delete(`${backendUrl}/api/admin/doctors/${doctorId}`, {
+                headers: { 
+                    'Authorization': `Bearer ${adminToken}`,
+                    'Content-Type': 'application/json'
+                }
+            })
+
+            if (data.success) {
+                toast.success('Doctor removed successfully!')
                 getDoctorsData() // Refresh doctors list
                 return { success: true }
             } else {
@@ -343,7 +429,7 @@ const loginAdmin = async (email, password) => {
                 return { success: false, message: data.message }
             }
         } catch (error) {
-            console.log('Add doctor note error:', error)
+            console.log('Remove doctor error:', error)
             const errorMessage = error.response?.data?.message || error.message
             toast.error(errorMessage)
             return { success: false, message: errorMessage }
@@ -373,6 +459,67 @@ const loginAdmin = async (email, password) => {
             }
         } catch (error) {
             console.log('Get dashboard stats error:', error)
+            const errorMessage = error.response?.data?.message || error.message
+            toast.error(errorMessage)
+            return { success: false, message: errorMessage }
+        }
+    }
+
+    // Get system analytics (Admin only)
+    const getAnalytics = async (period = 'week') => {
+        try {
+            if (!adminToken || !isAdmin()) {
+                toast.error('Admin access required')
+                return { success: false, message: 'Unauthorized' }
+            }
+
+            const { data } = await axios.get(`${backendUrl}/api/admin/analytics`, {
+                params: { period },
+                headers: { 
+                    'Authorization': `Bearer ${adminToken}`,
+                    'Content-Type': 'application/json'
+                }
+            })
+
+            if (data.success) {
+                return { success: true, analytics: data.analytics }
+            } else {
+                toast.error(data.message)
+                return { success: false, message: data.message }
+            }
+        } catch (error) {
+            console.log('Get analytics error:', error)
+            const errorMessage = error.response?.data?.message || error.message
+            toast.error(errorMessage)
+            return { success: false, message: errorMessage }
+        }
+    }
+
+    // Add doctor note (Admin only)
+    const addDoctorNote = async (doctorId, note) => {
+        try {
+            if (!adminToken || !isAdmin()) {
+                toast.error('Admin access required')
+                return { success: false, message: 'Unauthorized' }
+            }
+
+            const { data } = await axios.post(`${backendUrl}/api/admin/doctors/${doctorId}/notes`, { note }, {
+                headers: { 
+                    'Authorization': `Bearer ${adminToken}`,
+                    'Content-Type': 'application/json'
+                }
+            })
+
+            if (data.success) {
+                toast.success('Note added successfully!')
+                getDoctorsData() // Refresh doctors list
+                return { success: true }
+            } else {
+                toast.error(data.message)
+                return { success: false, message: data.message }
+            }
+        } catch (error) {
+            console.log('Add doctor note error:', error)
             const errorMessage = error.response?.data?.message || error.message
             toast.error(errorMessage)
             return { success: false, message: errorMessage }
@@ -436,16 +583,16 @@ const loginAdmin = async (email, password) => {
     }
 
     // Initialize app state
-   useEffect(() => {
-    console.log('AppContext useEffect triggered');
-    console.log('Admin token exists:', !!adminToken);
-    console.log('Admin data exists:', !!adminData);
-    
-    if (adminToken && isAdminTokenValid()) {
-        console.log('Loading admin profile...');
-        loadAdminProfileData();
-    }
-}, [adminToken]); // Keep only adminToken as dependency
+    useEffect(() => {
+        console.log('AppContext useEffect triggered');
+        console.log('Admin token exists:', !!adminToken);
+        console.log('Admin data exists:', !!adminData);
+        
+        if (adminToken && isAdminTokenValid()) {
+            console.log('Loading admin profile...');
+            loadAdminProfileData();
+        }
+    }, [adminToken]); 
 
     // Auto-refresh doctors data when authentication state changes
     useEffect(() => {
@@ -453,42 +600,52 @@ const loginAdmin = async (email, password) => {
     }, [token, adminToken])
 
     const value = {
-    // State
-    doctors, setDoctors,
-    currencySymbol,
-    backendUrl,
-    
-    // Patient state
-    token, setToken,
-    userData, setUserData, 
-    
-    // Admin state
-    adminToken, setAdminToken,
-    adminData, setAdminData,
-    
-    // Patient functions
-    loadUserProfileData,
-    loginUser,
-    registerUser,
-    updateUserProfile,
-    logoutUser,
-    isPatient,
-    isPatientTokenValid,
-    
-    // Admin functions
-    loginAdmin,  // Simplified function
-    loadAdminProfileData,
-    getDashboardStats,
-    logoutAdmin,
-    isAdmin,
-    isAdminTokenValid,
-    
-    // Shared functions
-    getDoctorsData,
-    updateDoctorAvailability,
-    toggleDoctorStatus,
-    addDoctorNote
-}
+        // State
+        doctors, setDoctors,
+        users, setUsers,
+        currencySymbol,
+        backendUrl,
+        
+        // Patient state
+        token, setToken,
+        userData, setUserData, 
+        
+        // Admin state
+        adminToken, setAdminToken,
+        adminData, setAdminData,
+        
+        // Patient functions
+        loadUserProfileData,
+        loginUser,
+        registerUser,
+        updateUserProfile,
+        logoutUser,
+        isPatient,
+        isPatientTokenValid,
+        
+        // Admin functions
+        loginAdmin,
+        loadAdminProfileData,
+        getDashboardStats,
+        getAnalytics,
+        logoutAdmin,
+        isAdmin,
+        isAdminTokenValid,
+        
+        // Doctor management functions (Admin)
+        updateDoctorAvailability,
+        toggleDoctorStatus,
+        addNewDoctor,
+        updateExistingDoctor,
+        removeDoctor,
+        addDoctorNote,
+        
+        // User management functions (Admin)
+        getUsersData,
+        
+        // Shared functions
+        getDoctorsData
+    }
 
     return (
         <AppContext.Provider value={value}>
