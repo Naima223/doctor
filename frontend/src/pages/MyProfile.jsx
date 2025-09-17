@@ -1,10 +1,10 @@
-// src/pages/MyProfile.jsx
+
 import React, { useEffect, useState } from "react";
 import { useAuth } from "../context/AuthProvider";
 import api from "../api/client";
 
 export default function MyProfile() {
-  const { user } = useAuth(); // AuthProvider থেকে user (login/register response)
+  const { user } = useAuth();
   const [me, setMe] = useState(user);
   const [loading, setLoading] = useState(!user);
 
@@ -13,14 +13,13 @@ export default function MyProfile() {
     (async () => {
       try {
         if (!user) {
-          // তোমার backend এর route = GET /api/user/profile
           const { data } = await api.get("/user/profile");
           if (mounted) setMe(data.userData || data.user || null);
         } else {
           setMe(user);
         }
       } catch {
-        // unauthorized হলে ProtectedRoute prevent করবে
+        // ignore; ProtectedRoute/401 handler covers
       } finally {
         if (mounted) setLoading(false);
       }

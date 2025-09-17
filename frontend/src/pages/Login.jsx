@@ -12,14 +12,12 @@ export default function Login() {
 
   const { login, register } = useAuth();
 
-  // default: Sign Up (tomar previous logic follow kora)
   const [state, setState] = useState("Sign Up"); // "Login" | "Sign Up"
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
-  // URL mode onujayi toggle
   useEffect(() => {
     if (mode === "login") setState("Login");
     else if (mode === "signup") setState("Sign Up");
@@ -30,13 +28,12 @@ export default function Login() {
     setSubmitting(true);
     try {
       if (state === "Login") {
-        await login(email, password); // AuthProvider handles token+user
+        await login(email, password);
         toast.success("Login successful!");
       } else {
-        await register({ name, email, password }); // AuthProvider handles token+user
+        await register({ name, email, password });
         toast.success("Account created!");
       }
-      // redirect (you can change to "/" if you want)
       navigate("/my-profile");
     } catch (err) {
       toast.error(err?.response?.data?.message || "Something went wrong");

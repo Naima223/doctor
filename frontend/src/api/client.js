@@ -1,4 +1,3 @@
-// src/api/client.js
 import axios from "axios";
 
 const baseURL =
@@ -8,7 +7,6 @@ const client = axios.create({ baseURL });
 
 // Attach token on every request
 client.interceptors.request.use((config) => {
-  // reads your current key; also falls back to qd_token if ever used
   const token =
     localStorage.getItem("token") || localStorage.getItem("qd_token");
   if (token) config.headers.Authorization = `Bearer ${token}`;
@@ -23,7 +21,6 @@ client.interceptors.response.use(
     if (status === 401) {
       localStorage.removeItem("token");
       localStorage.removeItem("qd_token");
-      // use hard redirect to reset app state cleanly
       window.location.replace("/login");
     }
     return Promise.reject(err);
