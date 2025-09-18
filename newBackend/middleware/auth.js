@@ -1,7 +1,7 @@
 import jwt from "jsonwebtoken";
 import User from "../models/User.js";
 
-// --- helpers ---
+// --- helpers part ---
 const getTokenFromHeader = (req) => {
   const authHeader = req.get("Authorization") || "";
   const parts = authHeader.split(" ");
@@ -10,13 +10,12 @@ const getTokenFromHeader = (req) => {
 
 const ensureJwtSecret = () => {
   if (!process.env.JWT_SECRET) {
-    // Fail fast: better than silently using a weak default
     throw new Error("JWT_SECRET is not set in environment variables");
   }
   return process.env.JWT_SECRET;
 };
 
-// --- Required authentication ---
+// --- Required authentication---
 export const authenticateToken = async (req, res, next) => {
   try {
     const token = getTokenFromHeader(req);
@@ -25,20 +24,19 @@ export const authenticateToken = async (req, res, next) => {
     }
 
     const decoded = jwt.verify(token, ensureJwtSecret());
-    // NOTE: use lean for lightweight plain object
-    const user = await User.findById(decoded.id).select("-password -passwordHash").lean();
+    const uid = decoded.id || decoded._id || decoded.userId;
 
+    const user = await User.findById(uid).select("-password -passwordHash").lean();
     if (!user) {
       return res.status(401).json({ success: false, message: "Invalid token. User not found." });
     }
 
-    // attach for downstream use
-    req.user = user;                          // full safe user object (no secrets)
-    req.userId = user._id?.toString?.() || user._id; // convenience
+    req.user = user;
+    req.userId = uid;
     req.userRole = user.role || "user";
     return next();
   } catch (error) {
-    const isExpired = error?.name === "TokenExpiredError";
+    const isExpired = error && error.name === "TokenExpiredError";
     return res.status(401).json({
       success: false,
       message: isExpired ? "Token expired. Please log in again." : "Invalid token.",
@@ -46,29 +44,30 @@ export const authenticateToken = async (req, res, next) => {
   }
 };
 
-// --- Optional authentication (doesn't block on missing/invalid token) ---
+// --- Optional authentication ---
 export const optionalAuth = async (req, res, next) => {
   try {
     const token = getTokenFromHeader(req);
     if (token) {
       const decoded = jwt.verify(token, ensureJwtSecret());
-      const user = await User.findById(decoded.id).select("-password -passwordHash").lean();
+      const uid = decoded.id || decoded._id || decoded.userId;
+
+      const user = await User.findById(uid).select("-password -passwordHash").lean();
       if (user) {
         req.user = user;
-        req.userId = user._id?.toString?.() || user._id;
+        req.userId = uid;
         req.userRole = user.role || "user";
       }
     }
     return next();
   } catch {
-    // Ignore invalid/expired token and continue unauthenticated
-    return next();
+    return next(); // ignore invalid/expired token
   }
 };
 
-// --- Admin guard (use after authenticateToken) ---
+// --- Admin guard ---
 export const authorizeAdmin = (req, res, next) => {
-  const role = req.userRole || req.user?.role;
+  const role = req.userRole || (req.user && req.user.role);
   if (role === "admin") return next();
   return res.status(403).json({ success: false, message: "Forbidden: admin only" });
 };

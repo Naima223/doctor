@@ -6,21 +6,27 @@ import {
   bulkInsertDoctors,
   updateDoctorAvailability,
   toggleDoctorStatus,
-  addDoctorNote,
+  addDoctorNote
 } from "../controllers/doctorController.js";
 
 import {
   registerUser,
   loginUser,
   getUserProfile,
-  updateUserProfile,
+  updateUserProfile
 } from "../controllers/userController.js";
 
 import {
   authenticateToken,
   optionalAuth,
-  authorizeAdmin,
+  authorizeAdmin
 } from "../middleware/auth.js";
+
+import {
+  getMyAppointments,
+  createAppointment,
+  cancelAppointment
+} from "../controllers/appointmentController.js";
 
 const router = express.Router();
 
@@ -41,5 +47,10 @@ router.post("/user/login", loginUser);
 /* =============== User profile (protected) =============== */
 router.get("/user/profile", authenticateToken, getUserProfile);
 router.put("/user/profile", authenticateToken, updateUserProfile);
+
+/* =============== Appointments (protected) =============== */
+router.get("/appointments/my", authenticateToken, getMyAppointments);
+router.post("/appointments", authenticateToken, createAppointment);
+router.patch("/appointments/:id/cancel", authenticateToken, cancelAppointment);
 
 export default router;

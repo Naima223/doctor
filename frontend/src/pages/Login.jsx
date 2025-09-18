@@ -34,7 +34,8 @@ export default function Login() {
         await register({ name, email, password });
         toast.success("Account created!");
       }
-      navigate("/my-profile");
+      // Always go to homepage after success
+      navigate("/", { replace: true });
     } catch (err) {
       toast.error(err?.response?.data?.message || "Something went wrong");
     } finally {

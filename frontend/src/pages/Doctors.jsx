@@ -1,12 +1,14 @@
 import React, { useState, useEffect, useMemo, useContext } from 'react';
+import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { toast } from 'react-toastify';
 import { AppContext } from '../context/AppContext';
 import DoctorCard from '../components/DoctorCard';
 
 const Doctors = () => {
+  const navigate = useNavigate();
   const { backendUrl } = useContext(AppContext);
-  
+
   // State management
   const [doctors, setDoctors] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -37,7 +39,8 @@ const Doctors = () => {
   const fetchDoctors = async () => {
     try {
       setLoading(true);
-      const response = await axios.get(`${backendUrl}/api/doctors`);
+      // IMPORTANT: backendUrl already has /api, so don't add another /api
+      const response = await axios.get(`${backendUrl}/doctors`);
       if (response.data.success) {
         setDoctors(response.data.doctors);
       } else {
@@ -62,9 +65,9 @@ const Doctors = () => {
 
     // Filter by availability
     if (filters.availableOnly) {
-      result = result.filter(doctor => 
-        doctor.isActive && 
-        doctor.availability?.status === 'available' && 
+      result = result.filter(doctor =>
+        doctor.isActive &&
+        doctor.availability?.status === 'available' &&
         doctor.availableSlots > 0
       );
     }
@@ -88,22 +91,22 @@ const Doctors = () => {
     result.sort((a, b) => {
       switch (filters.sortBy) {
         case 'rating':
-          return b.rating - a.rating;
+          return (b.rating || 0) - (a.rating || 0);
         case 'experience':
-          return parseInt(b.experience) - parseInt(a.experience);
+          return parseInt(b.experience || 0) - parseInt(a.experience || 0);
         case 'price-low':
-          return a.consultationFee - b.consultationFee;
+          return (a.consultationFee || 0) - (b.consultationFee || 0);
         case 'price-high':
-          return b.consultationFee - a.consultationFee;
+          return (b.consultationFee || 0) - (a.consultationFee || 0);
         case 'availability':
           // Available doctors first
           const aAvailable = a.isActive && a.availability?.status === 'available' && a.availableSlots > 0;
           const bAvailable = b.isActive && b.availability?.status === 'available' && b.availableSlots > 0;
           if (aAvailable && !bAvailable) return -1;
           if (!aAvailable && bAvailable) return 1;
-          return a.name.localeCompare(b.name);
+          return String(a.name || '').localeCompare(String(b.name || ''));
         default:
-          return a.name.localeCompare(b.name);
+          return String(a.name || '').localeCompare(String(b.name || ''));
       }
     });
 
@@ -112,11 +115,11 @@ const Doctors = () => {
 
   const statistics = useMemo(() => ({
     total: filteredAndSortedDoctors.length,
-    available: filteredAndSortedDoctors.filter(doc => 
+    available: filteredAndSortedDoctors.filter(doc =>
       doc.isActive && doc.availability?.status === 'available' && doc.availableSlots > 0
     ).length,
-    avgRating: filteredAndSortedDoctors.length > 0 
-      ? (filteredAndSortedDoctors.reduce((acc, doc) => acc + doc.rating, 0) / filteredAndSortedDoctors.length).toFixed(1)
+    avgRating: filteredAndSortedDoctors.length > 0
+      ? (filteredAndSortedDoctors.reduce((acc, doc) => acc + (doc.rating || 0), 0) / filteredAndSortedDoctors.length).toFixed(1)
       : '0.0',
     totalSlots: filteredAndSortedDoctors.reduce((acc, doc) => acc + (doc.availableSlots || 0), 0)
   }), [filteredAndSortedDoctors]);
@@ -140,17 +143,14 @@ const Doctors = () => {
     });
   };
 
+  // Book click → go to /book/:doctorId (keep UI same, only navigation)
   const handleBookAppointment = (doctor) => {
-    const isBookable = doctor.isActive && 
-                      doctor.availability?.status === 'available' && 
-                      doctor.availableSlots > 0;
-    
-    if (!isBookable) {
-      toast.warn('This doctor is currently unavailable for appointments');
+    const id = doctor && (doctor._id || doctor.id);
+    if (!id) {
+      toast.error('Invalid doctor');
       return;
     }
-    
-    toast.success(`🎉 Booking appointment with ${doctor.name}!\n\n📋 Details:\n• Specialty: ${doctor.speciality}\n• Fee: ৳${doctor.consultationFee}\n• Phone: ${doctor.phone}\n• Available Slots: ${doctor.availableSlots}`);
+    navigate(`/book/${id}`);
   };
 
   // Components

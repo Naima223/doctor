@@ -1,11 +1,9 @@
-// models/User.js
+// newBackend/models/User.js
 import mongoose from "mongoose";
 
 const userSchema = new mongoose.Schema(
   {
     name: { type: String, required: true, trim: true },
-
-    // keep one canonical email: lowercase + unique
     email: {
       type: String,
       required: true,
@@ -14,23 +12,16 @@ const userSchema = new mongoose.Schema(
       trim: true,
       index: true,
     },
-
-    // store the HASH here (bcrypt hashed value)
-    password: { type: String, required: true },
-
-    // profile fields
+    password: { type: String, required: true }, // bcrypt hash
     phone: { type: String, default: "" },
     address: { type: String, default: "" },
-    gender: { type: String, default: "" }, // or enum: ['male','female','other','']
-    dob: { type: String, default: "" },    // keep as string since controller expects string
-
-    // app-level fields
+    gender: { type: String, default: "" },
+    dob: { type: String, default: "" },
     role: { type: String, default: "user" }, // 'user' | 'admin'
-    image: { type: String, default: null },  // optional avatar URL
+    image: { type: String, default: null },
   },
   { timestamps: true }
 );
 
-// Prevent model overwrite on hot reload (Vite/Next style dev)
 const User = mongoose.models.User || mongoose.model("User", userSchema);
 export default User;

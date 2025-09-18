@@ -17,6 +17,7 @@ import Contact from "./pages/Contact";
 import MyProfile from "./pages/MyProfile";
 import MyAppointments from "./pages/MyAppointments";
 import AdminPanel from "./pages/AdminPanel";
+import BookAppointment from "./pages/BookAppointment";
 
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
@@ -51,6 +52,7 @@ const App = () => {
         <Route element={<ProtectedRoute />}>
           <Route path="/my-profile" element={<MyProfile />} />
           <Route path="/my-appointments" element={<MyAppointments />} />
+          <Route path="/book/:doctorId" element={<BookAppointment />} />
         </Route>
 
         {/* Admin only */}
